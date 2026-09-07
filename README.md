@@ -118,6 +118,8 @@ python desktop_app.py
 
 The desktop app runs the same research workflow, displays the final synthesis, and saves each report as a UTF-8 text file under `research_agent/outputs/`, using the DOI as the filename.
 
+Use **Generate gap question from citations** first when you want the research question to emerge from the paper's Related Work, cited methods, limitations, and future-work evidence. The generated question is placed in the question box for review before running the synthesis. The **Gemini model** selector lets you switch models per run. Available text models include `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, and `gemini-3.8-flash`.
+
 ---
 
 ## 🧪 Running Automated Tests

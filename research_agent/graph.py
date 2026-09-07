@@ -80,6 +80,56 @@ def get_llm():
     )
 
 
+def generate_gap_question(base_doi: str) -> str:
+    """Generate one research-gap question grounded in the paper's related work."""
+    cleaned_doi = clean_doi(base_doi)
+    search_queries = [
+        "related work prior methods citations limitations future work",
+        "references existing methods unresolved challenge gap",
+        "multi-task learning lesion segmentation image super-resolution DR grading limitations",
+    ]
+    snippets = []
+    seen = set()
+    for search_query in search_queries:
+        for result in query_db(search_query, k=6, doi_filter=cleaned_doi):
+            text = result.get("text", "").strip()
+            if text and text not in seen:
+                snippets.append(text)
+                seen.add(text)
+
+    if not snippets:
+        raise ValueError(
+            f"No indexed citation context found for {cleaned_doi}. "
+            "Run the base-paper processing first."
+        )
+
+    llm = get_llm()
+    citation_context = "\n\n".join(f"Snippet {index}: {text}" for index, text in enumerate(snippets, 1))
+    prompt = f"""You are a rigorous research-gap analyst.
+Read only the related-work, cited-method, limitation, and future-work evidence below from one base paper.
+Generate exactly ONE strong research question that targets an explicit unresolved gap in those citations.
+
+Rules:
+- Do not assume that the base paper already proposes the solution.
+- Do not force the topic of deferral unless the cited evidence supports a missing decision, uncertainty, or clinical workflow mechanism.
+- Prefer a question that compares, measures, or designs a concrete missing capability.
+- The question must identify the task, setting, and evaluable outcome.
+- Return plain text only: one question ending with '?'.
+
+Base DOI: {cleaned_doi}
+Related citation evidence:
+{citation_context}
+"""
+    response = llm.invoke(prompt)
+    question = extract_text(response.content).strip()
+    question = question.replace("```", "").strip()
+    if "?" in question:
+        question = question[:question.find("?") + 1]
+    if not question:
+        raise ValueError("The model returned an empty gap question.")
+    return question
+
+
 # ----------------------------------------------------------------------
 # Node 1: node_process_base
 # ----------------------------------------------------------------------

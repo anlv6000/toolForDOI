@@ -1,5 +1,6 @@
 """Tkinter desktop interface for the academic research agent."""
 
+import os
 import sys
 import threading
 import tkinter as tk
@@ -11,7 +12,7 @@ PROJECT_DIR = Path(__file__).resolve().parent / "research_agent"
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-from graph import build_research_graph, clean_doi
+from graph import build_research_graph, clean_doi, generate_gap_question
 from main import OUTPUT_DIR, save_synthesis, validate_environment
 
 
@@ -43,8 +44,30 @@ class ResearchApp(tk.Tk):
         ttk.Label(form, text="Research question").grid(row=1, column=0, sticky="nw", padx=(0, 10), pady=5)
         self.query_text = tk.Text(form, height=3, wrap="word")
         self.query_text.grid(row=1, column=1, sticky="ew", pady=5)
+        ttk.Label(form, text="Gemini model").grid(row=2, column=0, sticky="w", padx=(0, 10), pady=5)
+        configured_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        self.model_var = tk.StringVar(value=configured_model)
+        self.model_combo = ttk.Combobox(
+            form,
+            textvariable=self.model_var,
+            values=(
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite",
+                "gemini-3-flash",
+                "gemini-3.1-flash-lite",
+                "gemini-3.5-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-3.6-flash",
+                "gemini-3.7-flash",
+                "gemini-3.8-flash",
+            ),
+            state="normal",
+        )
+        self.model_combo.grid(row=2, column=1, sticky="ew", pady=5)
         self.run_button = ttk.Button(form, text="Run research", command=self._start_run)
-        self.run_button.grid(row=2, column=1, sticky="e", pady=(8, 0))
+        self.run_button.grid(row=3, column=1, sticky="e", pady=(8, 0))
+        self.gap_button = ttk.Button(form, text="Generate gap question from citations", command=self._start_gap_question)
+        self.gap_button.grid(row=3, column=0, sticky="w", pady=(8, 0))
 
         result_frame = ttk.LabelFrame(self, text="Final Research Synthesis", padding=10)
         result_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=(0, 12))
@@ -69,17 +92,63 @@ class ResearchApp(tk.Tk):
     def _start_run(self):
         doi = clean_doi(self.doi_var.get())
         query = self.query_text.get("1.0", "end").strip()
+        model = self.model_var.get().strip()
         if not doi or not query:
             messagebox.showwarning("Missing input", "Please provide both a DOI and a research question.")
+            return
+        if not model:
+            messagebox.showwarning("Missing model", "Please select or enter a Gemini model.")
             return
         self.run_button.configure(state="disabled")
         self.open_folder_button.configure(state="disabled")
         self.result_text.delete("1.0", "end")
         self.status_var.set("Running research... Please wait.")
-        threading.Thread(target=self._run_worker, args=(doi, query), daemon=True).start()
+        threading.Thread(target=self._run_worker, args=(doi, query, model), daemon=True).start()
 
-    def _run_worker(self, doi, query):
+    def _start_gap_question(self):
+        doi = clean_doi(self.doi_var.get())
+        model = self.model_var.get().strip()
+        if not doi:
+            messagebox.showwarning("Missing DOI", "Please provide a base DOI first.")
+            return
+        if not model:
+            messagebox.showwarning("Missing model", "Please select or enter a Gemini model.")
+            return
+        self.run_button.configure(state="disabled")
+        self.gap_button.configure(state="disabled")
+        self.status_var.set("Reading related-work citations and generating a gap question...")
+        threading.Thread(target=self._gap_worker, args=(doi, model), daemon=True).start()
+
+    def _gap_worker(self, doi, model):
+        previous_model = os.environ.get("GEMINI_MODEL")
         try:
+            os.environ["GEMINI_MODEL"] = model
+            if not validate_environment():
+                raise RuntimeError("Environment configuration is incomplete. Check research_agent/.env.")
+            question = generate_gap_question(doi)
+            self.after(0, self._gap_complete, question)
+        except Exception as error:
+            self.after(0, self._gap_failed, str(error))
+        finally:
+            self._restore_model(previous_model)
+
+    def _gap_complete(self, question):
+        self.query_text.delete("1.0", "end")
+        self.query_text.insert("1.0", question)
+        self.status_var.set("Gap question generated from citation evidence. Review it before running research.")
+        self.run_button.configure(state="normal")
+        self.gap_button.configure(state="normal")
+
+    def _gap_failed(self, error):
+        self.status_var.set("Gap-question generation failed")
+        self.run_button.configure(state="normal")
+        self.gap_button.configure(state="normal")
+        messagebox.showerror("Gap question failed", error)
+
+    def _run_worker(self, doi, query, model):
+        previous_model = os.environ.get("GEMINI_MODEL")
+        try:
+            os.environ["GEMINI_MODEL"] = model
             if not validate_environment():
                 raise RuntimeError("Environment configuration is incomplete. Check research_agent/.env.")
             state = {
@@ -106,6 +175,15 @@ class ResearchApp(tk.Tk):
             self.after(0, self._run_complete, answer, output_path)
         except Exception as error:
             self.after(0, self._run_failed, str(error))
+        finally:
+            self._restore_model(previous_model)
+
+    @staticmethod
+    def _restore_model(previous_model):
+        if previous_model is None:
+            os.environ.pop("GEMINI_MODEL", None)
+        else:
+            os.environ["GEMINI_MODEL"] = previous_model
 
     def _run_complete(self, answer, output_path):
         self.result_text.insert("1.0", answer)
