@@ -111,6 +111,13 @@ Enter base paper DOI (e.g. 10.1038/s41586-020-2649-2): 10.1038/s41586-020-2649-2
 Enter research question: What methods were used for data reproducibility?
 ```
 
+### Desktop App:
+```bash
+python desktop_app.py
+```
+
+The desktop app runs the same research workflow, displays the final synthesis, and saves each report as a UTF-8 text file under `research_agent/outputs/`, using the DOI as the filename.
+
 ---
 
 ## 🧪 Running Automated Tests

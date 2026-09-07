@@ -20,6 +20,35 @@ load_dotenv()  # Fallback to root .env if present
 from graph import build_research_graph, clean_doi
 from tools import find_local_pdf
 
+
+OUTPUT_DIR = CURRENT_DIR / "outputs"
+
+
+def output_filename(doi: str) -> str:
+    """Create a filesystem-safe output filename while retaining the DOI identity."""
+    cleaned = clean_doi(doi)
+    safe_doi = "".join(character if character.isalnum() or character in ".-_" else "_" for character in cleaned)
+    return f"{safe_doi}.txt"
+
+
+def save_synthesis(doi: str, query: str, final_answer: str, analyzed_dois=None, hop_count=0) -> Path:
+    """Save a synthesis and its run metadata as a readable text report."""
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / output_filename(doi)
+    examined = ", ".join(analyzed_dois or []) or clean_doi(doi)
+    report = (
+        f"Base DOI: {clean_doi(doi)}\n"
+        f"Research Query: {query}\n"
+        f"Examined DOIs: {examined}\n"
+        f"Hops: {hop_count}\n"
+        f"\n{'=' * 80}\n"
+        f"FINAL RESEARCH SYNTHESIS\n"
+        f"{'=' * 80}\n\n"
+        f"{final_answer.rstrip()}\n"
+    )
+    output_path.write_text(report, encoding="utf-8")
+    return output_path
+
 try:
     from rich.console import Console
     from rich.panel import Panel
@@ -119,6 +148,13 @@ def run_agent(doi: str, query: str):
         # Output Results
         final_answer = final_state.get("final_answer", "No synthesis generated.")
         analyzed_dois = final_state.get("current_dois", [])
+        output_path = save_synthesis(
+            doi,
+            query,
+            final_answer,
+            analyzed_dois,
+            final_state.get("hop_count", 0),
+        )
 
         if HAS_RICH:
             console.print("\n" + "=" * 70)
@@ -132,6 +168,7 @@ def run_agent(doi: str, query: str):
             doi_summary = ", ".join(analyzed_dois) if analyzed_dois else "None"
             console.print(f"\n[dim cyan]Total Literature Examined:[/dim cyan] {doi_summary}")
             console.print(f"[dim cyan]Total Hops Executed:[/dim cyan] {final_state.get('hop_count', 0)}\n")
+            console.print(f"[dim cyan]Saved Report:[/dim cyan] {output_path}")
         else:
             print("\n" + "=" * 70)
             print("FINAL RESEARCH SYNTHESIS")
@@ -140,6 +177,9 @@ def run_agent(doi: str, query: str):
             print("-" * 70)
             print(f"Examined DOIs: {', '.join(analyzed_dois)}")
             print(f"Hops: {final_state.get('hop_count', 0)}\n")
+            print(f"Saved report: {output_path}")
+
+        return final_answer, output_path
 
     except Exception as e:
         if HAS_RICH:

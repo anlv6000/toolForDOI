@@ -13,6 +13,7 @@ if str(PROJECT_DIR) not in sys.path:
 
 from tools import clean_doi, find_local_pdf, get_unpaywall_pdf_link, get_semantic_scholar_references
 from graph import build_research_graph, route_after_evaluate
+from main import output_filename, save_synthesis
 
 
 class TestTools(unittest.TestCase):
@@ -28,6 +29,9 @@ class TestTools(unittest.TestCase):
         pdf_path = find_local_pdf("10.1109/JBHI.2021.3119519", pdf_dir)
         self.assertIsNotNone(pdf_path)
         self.assertEqual(pdf_path.name, "10.1109JBHI.2021.3119519.pdf")
+
+    def test_synthesis_output_is_named_by_doi(self):
+        self.assertEqual(output_filename("10.1109/JBHI.2021.3119519"), "10.1109_JBHI.2021.3119519.txt")
 
     @patch("requests.get")
     def test_get_unpaywall_pdf_link_success(self, mock_get):
