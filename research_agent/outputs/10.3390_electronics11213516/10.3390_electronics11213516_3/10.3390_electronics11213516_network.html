@@ -1,0 +1,155 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 720px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#f59e0b", "font": {"color": "#222222"}, "id": "10.3390/electronics11213516", "label": "10.3390/electronics11213516", "shape": "dot", "size": 28, "title": "Base paper DOI: 10.3390/electronics11213516"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.media.2022.102599", "label": "Volumetric memory network for interactive ", "shape": "dot", "title": "\u003cb\u003eVolumetric memory network for interactive medical image segmentation\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.media.2022.102599\u003cbr\u003eDespite recent progress of automatic medical image segmentation techniques, fully automatic results usually fail to meet clinically acceptable accuracy, thus typically require further refinement. To this end, we propose a novel Volumetric Memory Network, dubbed as VMN, to enable segmentation of 3D medical images in an interactive manner. Provided by user hints on an arbitrary slice, a 2D interaction network is firstly employed to produce an initial 2D segmentation for the chosen slice. Then, the VMN propagates the initial segmentation mask bidirectionally to all slices of the entire volume. Subsequent refinement based on additional user guidance on other slices can be incorporated in the same manner. To facilitate smooth human-in-the-loop segmentation, a quality assessment module is introduced to suggest the next slice for interaction based on the segmentation quality of each slice produced in the previous round. Our VMN demonstrates two distinctive features: First, the memory-augmented network design offers our model the ability to quickly encode past segmentation information, which will be retrieved later for the segmentation of other slices; Second, the quality assessment module enables the model to directly estimate the quality of each segmentation prediction, which allows for an active learning paradigm where users preferentially label the lowest-quality slice for multi-round refinement. The proposed network leads to a robust interactive segmentation engine, which can generalize well to various types of user annotations (e.g., scribble, bounding box, extreme clicking). Extensive experiments have been conducted on three public medical image segmentation datasets (i.e., MSD, KiTS19, CVC-ClinicDB), and the results clearly confirm the superiority of our approach in comparison with state-of-the-art segmentation models. The code is made publicly available at https://github.com/0liliulei/Mem3D."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.3390/electronics11172740", "label": "Detection of Diabetic Retinopathy in Retin", "shape": "dot", "title": "\u003cb\u003eDetection of Diabetic Retinopathy in Retinal Fundus Images Using CNN Classification Models\u003c/b\u003e\u003cbr\u003eDOI: 10.3390/electronics11172740\u003cbr\u003eDiabetes is a widespread disease in the world and can lead to diabetic retinopathy, macular edema, and other obvious microvascular complications in the retina of the human eye. This study attempts to detect diabetic retinopathy (DR), which has been the main reason behind the blindness of people in the last decade. Timely or early treatment is necessary to prevent some DR complications and control blood glucose. DR is very difficult to detect in time-consuming manual diagnosis because of its diversity and complexity. This work utilizes a deep learning application, a convolutional neural network (CNN), in fundus photography to distinguish the stages of DR. The images dataset in this study is obtained from Xiangya No. 2 Hospital Ophthalmology (XHO), Changsha, China, which is very large, little and the labels are unbalanced. Thus, this study first solves the problem of the existing dataset by proposing a method that uses preprocessing, regularization, and augmentation steps to increase and prepare the image dataset of XHO for training and improve performance. Then, it takes the advantages of the power of CNN with different residual neural network (ResNet) structures, namely, ResNet-101, ResNet-50, and VggNet-16, to detect DR on XHO datasets. ResNet-101 achieved the maximum level of accuracy, 0.9888, with a training loss of 0.3499 and a testing loss of 0.9882. ResNet-101 is then assessed on 1787 photos from the HRF, STARE, DIARETDB0, and XHO databases, achieving an average accuracy of 0.97, which is greater than prior efforts. Results prove that the CNN model (ResNet-101) has better accuracy than ResNet-50 and VggNet-16 in DR image classification."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1155/2022/3117455", "label": "Retinal Vessel Automatic Segmentation Usin", "shape": "dot", "title": "\u003cb\u003eRetinal Vessel Automatic Segmentation Using SegNet\u003c/b\u003e\u003cbr\u003eDOI: 10.1155/2022/3117455\u003cbr\u003eExtracting retinal vessels accurately is very important for diagnosing some diseases such as diabetes retinopathy, hypertension, and cardiovascular. Clinically, experienced ophthalmologists diagnose these diseases through segmenting retinal vessels manually and analysing its structural feature, such as tortuosity and diameter. However, manual segmentation of retinal vessels is a time-consuming and laborious task with strong subjectivity. The automatic segmentation technology of retinal vessels can not only reduce the burden of ophthalmologists but also effectively solve the problem that is a lack of experienced ophthalmologists in remote areas. Therefore, the automatic segmentation technology of retinal vessels is of great significance for clinical auxiliary diagnosis and treatment of ophthalmic diseases. A method using SegNet is proposed in this paper to improve the accuracy of the retinal vessel segmentation. The performance of the retinal vessel segmentation model with SegNet is evaluated on the three public datasets (DRIVE, STARE, and HRF) and achieved accuracy of 0.9518, 0.9683, and 0.9653, sensitivity of 0.7580, 0.7747, and 0.7070, specificity of 0.9804, 0.9910, and 0.9885, F1 score of 0.7992, 0.8369, and 0.7918, MCC of 0.7749, 0.8227, and 0.7643, and AUC of 0.9750, 0.9893, and 0.9740, respectively. The experimental results showed that the method proposed in this research presented better results than many classical methods studied and may be expected to have clinical application prospects."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1155/2022/8030954", "label": "Retinal Blood Vessels and Optic Disc Segme", "shape": "dot", "title": "\u003cb\u003eRetinal Blood Vessels and Optic Disc Segmentation Using U-Net\u003c/b\u003e\u003cbr\u003eDOI: 10.1155/2022/8030954\u003cbr\u003eA color fundus image is a photograph obtained using a fundus camera of the inner wall of the eyeball. In the image, doctors may see changes in the retinal vessels, which can be used to diagnose various dangerous disorders such as arteriosclerosis, some macular degeneration related to age, and glaucoma. To diagnose certain disorders as early as possible, automatic segmentation of retinal arteries is used to help the doctors. Also, it is a challenge for the medical community to analyze the image with the right procedure to diagnose the disorders with high accuracy. Furthermore, this will help the doctor to make the right decision on effective treatment. Hence, the authors have implemented an enhanced architecture called U-Net to segment retinal vessels in this paper. The proposed conventional U-Net permits using all the accessible spatial setting information by adding the multiscale input layer and a thick square to the conventional U-Net in terms of improving the accuracy level of image segmentation. It achieved 95.6% accuracy with a comparatively traditional U-Net model. Moreover, the segmentation results have proved that the proposed approach outperformed in detecting most complex low-contrast blood vessels even when they are very thin. The task of segmenting vessels in retinal images is known as retinal vessel segmentation. Blood vessel density can be assessed using dense pixel values. Data augmentation and analytics play a major role in building the true value of eye blood vessels for medical diagnosis. The proposed method is very promising in the automatic segmentation of retinal arteries."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.3390/math9192383", "label": "Automatic Superpixel-Based Clustering for ", "shape": "dot", "title": "\u003cb\u003eAutomatic Superpixel-Based Clustering for Color Image Segmentation Using q-Generalized Pareto Distribution under Linear Normalization and Hunger Games Search\u003c/b\u003e\u003cbr\u003eDOI: 10.3390/math9192383\u003cbr\u003eSuperixel is one of the most efficient of the image segmentation approaches that are widely used for different applications. In this paper, we developed an image segmentation based on superpixel and an automatic clustering using q-Generalized Pareto distribution under linear normalization (q-GPDL), called ASCQPHGS. The proposed method uses the superpixel algorithm to segment the given image, then the Density Peaks clustering (DPC) is employed to the results obtained from the superpixel algorithm to produce a decision graph. The Hunger games search (HGS) algorithm is employed as a clustering method to segment the image. The proposed method is evaluated using two different datasets, collected form Berkeley segmentation dataset and benchmark (BSDS500) and standford background dataset (SBD). More so, the proposed method is compared to several methods to verify its performance and efficiency. Overall, the proposed method showed significant performance and it outperformed all compared methods using well-known performance metrics."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1155/2021/5561125", "label": "Multichannel Retinal Blood Vessel Segmenta", "shape": "dot", "title": "\u003cb\u003eMultichannel Retinal Blood Vessel Segmentation Based on the Combination of Matched Filter and U-Net Network\u003c/b\u003e\u003cbr\u003eDOI: 10.1155/2021/5561125\u003cbr\u003eAiming at the current problem of insufficient extraction of small retinal blood vessels, we propose a retinal blood vessel segmentation algorithm that combines supervised learning and unsupervised learning algorithms. In this study, we use a multiscale matched filter with vessel enhancement capability and a U-Net model with a coding and decoding network structure. Three channels are used to extract vessel features separately, and finally, the segmentation results of the three channels are merged. The algorithm proposed in this paper has been verified and evaluated on the DRIVE, STARE, and CHASE_DB1 datasets. The experimental results show that the proposed algorithm can segment small blood vessels better than most other methods. We conclude that our algorithm has reached 0.8745, 0.8903, and 0.8916 on the three datasets in the sensitivity metric, respectively, which is nearly 0.1 higher than other existing methods."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1109/ICBSII51839.2021.9445135", "label": "Retinal Vessel Segmentation with Slime-Mou", "shape": "dot", "title": "\u003cb\u003eRetinal Vessel Segmentation with Slime-Mould-Optimization based Multi-Scale-Matched-Filter\u003c/b\u003e\u003cbr\u003eDOI: 10.1109/ICBSII51839.2021.9445135\u003cbr\u003eEven though a number of sensory organs are existing, eye plays a necessary role in the sensory system; which converts the incident light into meaningful visual information. If any abnormality arises in eye, then the whole sensory system gets stressed. The disease in eye is due to injury, infection and ageing and the untreated eye disease will lead to vision loss. The proposed research aims to propose a Computer-Aided-Procedure (CAP) to extract the blood-vessel section from Digital-Fundus-Image (DFI). In order to accomplish this task, a Multi-Scale-Matched-Filter (MSMF) is designed using the Slime-Mould-Optimization algorithm. In this work, the necessary test images are collected from the benchmark DRIVE and CHASE_DB1 dataset. After extracting the blood-vessel using the MSMF, an examination among extracted vessel and the Ground-Truth (GT) image is executed and the Image\u2013Performance-Values are separately computed for each database. The attained result with this CAP confirms that the attained Jaccard, Dice and Accuracy of proposed approach is better compared to similar existing approaches in the literature."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1109/ICBSII51839.2021.9445134", "label": "Machine-Learning-Scheme to Detect Choroida", "shape": "dot", "title": "\u003cb\u003eMachine-Learning-Scheme to Detect Choroidal-Neovascularization in Retinal OCT Image\u003c/b\u003e\u003cbr\u003eDOI: 10.1109/ICBSII51839.2021.9445134\u003cbr\u003eEye is a fundamental sensory organ and any disease in eye will severely affect the sensory signal evaluation and conclusion making capability of the brain. The Choroidal-Neovascularization (CNV) is one of the harsh eye diseases in which a new blood-vessel grow from the choroid. Usually, the major cause of CNV is due to wet Age-Related-Macular-Degeneration (ARMD) and the formed new vessel will cause a leak in fluid which makes the retinal wet. The untreated CNV will lead to vision loss. In this research, detection of CNV using Optical-Coherence-Tomography (OCT) is presented using 484 images (242 Healthy and 242 CNV). In this work, a Machine-Learning-Scheme (MLS) is developed to examine the resized OCT of 256x256 pixels and the stages of this MLS includes; pre-processing, feature extraction, Mayfly-Optimization-Algorithm (MFA) based feature reduction, and two-class classification. The experimental outcome of this technique confirmed that the Fine-Gaussian-SVM (SVM-FG) classifier helped to accomplish an improved classification accuracy (\u003e92%) compared to the alternative classifiers of this study."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.3390/sym12060894", "label": "Retinal Blood Vessel Segmentation Using Hy", "shape": "dot", "title": "\u003cb\u003eRetinal Blood Vessel Segmentation Using Hybrid Features and Multi-Layer Perceptron Neural Networks\u003c/b\u003e\u003cbr\u003eDOI: 10.3390/sym12060894\u003cbr\u003eSegmentation of retinal blood vessels is the first step for several computer aided-diagnosis systems (CAD), not only for ocular disease diagnosis such as diabetic retinopathy (DR) but also of non-ocular disease, such as hypertension, stroke and cardiovascular diseases. In this paper, a supervised learning-based method, using a multi-layer perceptron neural network and carefully selected vector of features, is proposed. In particular, for each pixel of a retinal fundus image, we construct a 24-D feature vector, encoding information on the local intensity, morphology transformation, principal moments of phase congruency, Hessian, and difference of Gaussian values. A post-processing technique depending on mathematical morphological operators is used to optimise the segmentation. Moreover, the selected feature vector succeeded in outfitting the symmetric features that provided the final blood vessel probability as a binary map image. The proposed method is tested on three known datasets: Digital Retinal Image for Extraction (DRIVE), Structure Analysis of the Retina (STARE), and CHASED_DB1 datasets. The experimental results, both visual and quantitative, testify to the robustness of the proposed method. This proposed method achieved 0.9607, 0.7542, and 0.9843 in DRIVE, 0.9632, 0.7806, and 0.9825 on STARE, 0.9577, 0.7585 and 0.9846 in CHASE_DB1, with respectable accuracy, sensitivity, and specificity performance metrics. Furthermore, they testify that the method is superior to seven similar state-of-the-art methods."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1088/1742-6596/1376/1/012023", "label": "Retinal Blood Vessel Segmentation using Ga", "shape": "dot", "title": "\u003cb\u003eRetinal Blood Vessel Segmentation using Gaussian Filter\u003c/b\u003e\u003cbr\u003eDOI: 10.1088/1742-6596/1376/1/012023\u003cbr\u003eRetinal diseases are a visual disorder that can cause human vision problems, such as blindness and low vision. Early detection of this disease is important to prevent visual impairment. In ophthalmology, segmentation of blood vessels is a major component of color retinal fundus images analysis for monitoring and diagnosing retinal diseases, like diabetic retinopathy, hypertensive retinopathy, age-related macular degeneration and arteriosclerotic. This process is effective to identify retinal diseases more accurately. This paper using Gaussian Filter to segmenting blood vessel on retinal images because this method is effective to remove noise and make blood vessels on images more clearly. These methods are applied to color fundus images from DRIVE database. These databases contain color fundus image are used to evaluate this method. The performance is evaluated by accuracy, sensitivity and specificity. The proposed method has the average of accuracy, sensitivity and specificity at 95.72%, 96.90% and 82.10%."}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1016/j.media.2022.102599"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.3390/electronics11172740"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1155/2022/3117455"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1155/2022/8030954"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.3390/math9192383"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1155/2021/5561125"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1109/ICBSII51839.2021.9445135"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1109/ICBSII51839.2021.9445134"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.3390/sym12060894"}, {"arrows": "to", "from": "10.3390/electronics11213516", "to": "10.1088/1742-6596/1376/1/012023"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

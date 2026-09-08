@@ -114,6 +114,10 @@ Các request tải metadata/PDF đã dùng User-Agent trình duyệt, kiểm tra
 mặc định. Chỉ khi một nhà xuất bản có chứng chỉ lỗi mới tạm thời đặt
 `VERIFY_SSL=false`; nên bật lại `true` ngay sau lần chạy đó.
 
+DOI arXiv dạng `10.48550/arXiv.2106.09685` được nhận diện riêng: agent bóc tách
+ID `2106.09685`, dùng định danh `ARXIV:2106.09685` khi gọi Semantic Scholar và
+tải PDF trực tiếp từ `https://arxiv.org/pdf/2106.09685.pdf`, không gọi Unpaywall.
+
 ---
 
 ## Cách chạy

@@ -1,0 +1,67 @@
+Base DOI: 10.48550/arXiv.2106.09685
+Research Query: So sánh phương pháp fine-tune hiệu quả tham số LoRA (Low-Rank Adaptation) với các kỹ thuật Full Fine-tuning truyền thống và phương pháp Adapter-based được trích dẫn trong bài báo. Việc phân rã ma trận trọng số (matrix decomposition) đã giúp giảm bao nhiêu phần trăm số lượng tham số cần huấn luyện so với mô hình gốc?
+Examined DOIs: 10.48550/arXiv.2106.09685
+Hops: 0
+Report Number: 2
+
+================================================================================
+FINAL RESEARCH SYNTHESIS
+================================================================================
+
+# BÁO CÁO NGHIÊN CỨU KHOA HỌC: SO SÁNH PHƯƠNG PHÁP FINE-TUNE HIỆU QUẢ THAM SỐ LORA VỚI CÁC PHƯƠNG PHÁP TRUYỀN THỐNG
+
+## Executive Summary
+
+Nghiên cứu này tiến hành đánh giá và so sánh phương pháp tinh chỉnh hiệu quả tham số LoRA (Low-Rank Adaptation) với phương pháp tinh chỉnh toàn bộ tham số (Full Fine-tuning) truyền thống và các kỹ thuật dựa trên Adapter (Adapter-based) dựa trên các minh chứng thực nghiệm từ tài liệu gốc. Kết quả phân tích cho thấy việc áp dụng kỹ thuật phân rã ma trận trọng số (matrix decomposition) của LoRA giúp giảm thiểu đáng kể số lượng tham số cần huấn luyện—lên tới **99.997%** đối với mô hình GPT-3 175B—trong khi vẫn duy trì hoặc vượt trội hơn về mặt hiệu năng so với các phương pháp đối chứng trên nhiều tập dữ liệu chuẩn.
+
+---
+
+## Evidence Synthesis
+
+### 1. Cơ chế hoạt động của LoRA
+Phương pháp LoRA hoạt động bằng cách đóng băng các trọng số của mô hình đã được huấn luyện trước (pre-trained) và chèn các ma trận phân rã hạng (rank decomposition matrices) có thể huấn luyện được vào song song với các ma trận trọng số hiện tại [DOI: 10.48550/arXiv.2106.09685]. Trong kiến trúc Transformer, kỹ thuật này được áp dụng cụ thể vào các ma trận trọng số $W_q$ và $W_v$ trong mô hình tự chú ý (self-attention module) [DOI: 10.48550/arXiv.2106.09685].
+
+### 2. Hiệu quả giảm thiểu tham số huấn luyện
+Việc phân rã ma trận trọng số đã giúp cắt giảm một lượng cực kỳ lớn số lượng tham số cần huấn luyện so với mô hình gốc khi thực hiện tinh chỉnh toàn bộ (Full Fine-tuning):
+*   **Đối với mô hình GPT-3 175B:** Phương pháp tinh chỉnh toàn bộ (Full Fine-tuning) yêu cầu huấn luyện toàn bộ **175,255.8 triệu (M)** tham số [DOI: 10.48550/arXiv.2106.09685].
+*   **Khi áp dụng LoRA:** 
+    *   Ở cấu hình tối giản, LoRA chỉ yêu cầu **4.7 triệu (M)** tham số huấn luyện, tương đương với mức **giảm khoảng 99.997%** số lượng tham số cần huấn luyện so với mô hình gốc [DOI: 10.48550/arXiv.2106.09685].
+    *   Ở cấu hình khác, LoRA yêu cầu **37.7 triệu (M)** tham số huấn luyện, tương đương với mức **giảm khoảng 99.978%** số lượng tham số cần huấn luyện [DOI: 10.48550/arXiv.2106.09685].
+
+### 3. So sánh hiệu năng thực nghiệm
+Mặc dù giảm thiểu tối đa số lượng tham số cần cập nhật, LoRA vẫn đạt hiệu năng tương đương hoặc vượt trội hơn so với cả Full Fine-tuning và các phương pháp Adapter-based (như AdapterH và AdapterL) trên các tập dữ liệu thử nghiệm bao gồm WikiSQL, MNLI (MultiNLI), SAMSum, DART, và WebNLG [DOI: 10.48550/arXiv.2106.09685]. 
+
+*Bảng so sánh hiệu năng cụ thể trên tập dữ liệu MNLI [DOI: 10.48550/arXiv.2106.09685]:*
+
+| Phương pháp | Số lượng tham số cần huấn luyện | Độ chính xác (Accuracy) trên MNLI |
+| :--- | :---: | :---: |
+| **Full Fine-tuning (FT)** | 175,255.8M | 89.5% |
+| **AdapterH** | 7.1M | 89.8% |
+| **LoRA** | **4.7M** | **91.7%** |
+
+Kết quả trên chứng minh LoRA không chỉ tiết kiệm tài nguyên tính toán nhờ giảm số lượng tham số mà còn tối ưu hóa khả năng hội tụ và biểu diễn của mô hình, vượt qua cả phương pháp tinh chỉnh toàn bộ truyền thống lẫn phương pháp AdapterH [DOI: 10.48550/arXiv.2106.09685].
+
+---
+
+## Research Gap
+
+Mặc dù tài liệu đã cung cấp các minh chứng thực nghiệm mạnh mẽ về hiệu quả của LoRA trên kiến trúc GPT-3 175B và một số tập dữ liệu cụ thể, các khoảng trống nghiên cứu sau đây vẫn chưa được giải quyết trong phạm vi dữ liệu hiện tại:
+1.  **Giới hạn về kiến trúc mô hình:** Nghiên cứu chưa cung cấp dữ liệu thực nghiệm chi tiết về hiệu quả của LoRA khi áp dụng cho các kiến trúc mô hình ngôn ngữ lớn khác ngoài GPT-3 (ví dụ: các mô hình Encoder-only hoặc Encoder-Decoder thế hệ mới).
+2.  **Độ trễ khi suy luận (Inference Latency):** Tài liệu chưa phân tích sâu về ảnh hưởng của cấu trúc song song của LoRA đối với tốc độ suy luận thực tế so với cấu trúc tuần tự của các phương pháp Adapter-based.
+3.  **Tối ưu hóa siêu tham số hạng (Rank $r$):** Chưa có hướng dẫn mang tính hệ thống về cách lựa chọn giá trị hạng (rank) tối ưu cho các nhiệm vụ khác nhau nhằm cân bằng giữa hiệu năng và số lượng tham số.
+
+---
+
+## Proposed Evaluation
+
+Để giải quyết các khoảng trống nghiên cứu nêu trên, chúng tôi đề xuất một kế hoạch đánh giá thực nghiệm như sau:
+
+1.  **Mở rộng kiểm thử trên đa kiến trúc:** Tiến hành áp dụng LoRA, Full Fine-tuning và các phương pháp Adapter-based trên các mô hình mã nguồn mở phổ biến hiện nay (như LLaMA, T5, BERT) để đánh giá tính tổng quát hóa của phương pháp phân rã ma trận.
+2.  **Đo lường hiệu năng phần cứng thực tế:** Thiết lập hệ thống đo lường thời gian huấn luyện (training time), bộ nhớ GPU tiêu thụ (VRAM), và độ trễ suy luận (inference latency - tính bằng mili-giây trên mỗi token) của LoRA so với các phương pháp Adapter truyền thống.
+3.  **Khảo sát độ nhạy của siêu tham số hạng (Rank Sensitivity Analysis):** Thực hiện các thí nghiệm thay đổi giá trị hạng $r$ (từ $r=1, 2, 4, 8, 16$ đến $64$) trên các tập dữ liệu phức tạp để xác định điểm bão hòa hiệu năng và đưa ra công thức khuyến nghị cấu hình tối ưu cho từng nhóm tác vụ cụ thể.
+
+---
+
+## References
+
+*   [DOI: 10.48550/arXiv.2106.09685] Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., & Chen, We. (2021). *LoRA: Low-Rank Adaptation of Large Language Models*. arXiv preprint arXiv:2106.09685.

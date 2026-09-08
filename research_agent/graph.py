@@ -22,6 +22,7 @@ try:
         export_citation_network,
         export_evidence_matrix,
         export_bibtex,
+        extract_arxiv_id,
     )
     from .vector_store import query_db, add_paper_to_db
 except ImportError:
@@ -35,6 +36,7 @@ except ImportError:
         export_citation_network,
         export_evidence_matrix,
         export_bibtex,
+        extract_arxiv_id,
     )
     from vector_store import query_db, add_paper_to_db
 
@@ -180,8 +182,10 @@ def node_process_base(state: AgentState) -> Dict[str, Any]:
             s2_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
             if s2_key:
                 s2_headers["x-api-key"] = s2_key
+            arxiv_id = extract_arxiv_id(base_doi)
+            s2_identifier = f"ARXIV:{arxiv_id}" if arxiv_id else base_doi
             s2_resp = requests.get(
-                f"https://api.semanticscholar.org/graph/v1/paper/{base_doi}?fields=title,abstract,openAccessPdf",
+                f"https://api.semanticscholar.org/graph/v1/paper/{s2_identifier}?fields=title,abstract,openAccessPdf",
                 headers=s2_headers,
                 timeout=15
             )

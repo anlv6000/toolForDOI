@@ -4,6 +4,7 @@ Interacts with Unpaywall API, Semantic Scholar API, and PyMuPDF.
 
 import os
 import io
+import re
 import time
 import requests
 import urllib3
@@ -54,6 +55,27 @@ def clean_doi(doi: str) -> str:
     elif doi.lower().startswith("doi:"):
         doi = doi[4:].strip()
     return doi
+
+
+def extract_arxiv_id(identifier: str) -> Optional[str]:
+    """Extract an arXiv identifier from its DOI, URL, or plain form."""
+    value = clean_doi(str(identifier)).strip()
+    patterns = (
+        r"^10\.48550/arxiv\.(?P<id>[^/?#]+)$",
+        r"^(?:https?://)?(?:export\.)?arxiv\.org/(?:abs|pdf)/(?P<id>[^/?#]+?)(?:\.pdf)?$",
+        r"^arxiv:(?P<id>[^/?#]+)$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, value, re.IGNORECASE)
+        if match:
+            return match.group("id")
+    return None
+
+
+def _semantic_scholar_identifier(identifier: str) -> str:
+    """Return the Semantic Scholar identifier for a DOI or arXiv paper."""
+    arxiv_id = extract_arxiv_id(identifier)
+    return f"ARXIV:{arxiv_id}" if arxiv_id else clean_doi(identifier)
 
 
 def _artifact_stem(doi: str) -> str:
@@ -161,6 +183,10 @@ def get_unpaywall_pdf_link(doi: str) -> Optional[str]:
         Direct URL string to the PDF if available, otherwise None.
     """
     cleaned_doi = clean_doi(doi)
+    arxiv_id = extract_arxiv_id(cleaned_doi)
+    if arxiv_id:
+        return f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+
     email = os.getenv("UNPAYWALL_EMAIL", "").strip()
 
     if not email or "example.com" in email:
@@ -351,9 +377,10 @@ def get_semantic_scholar_references(doi: str, max_refs: int = 10) -> List[Dict[s
         List of dicts: [{"doi": str, "title": str, "abstract": str}, ...]
     """
     cleaned_doi = clean_doi(doi)
+    semantic_identifier = _semantic_scholar_identifier(cleaned_doi)
     api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY", "").strip()
 
-    url = f"https://api.semanticscholar.org/graph/v1/paper/{cleaned_doi}"
+    url = f"https://api.semanticscholar.org/graph/v1/paper/{semantic_identifier}"
     params = {
         "fields": "references.title,references.abstract,references.authors,references.externalIds,references.openAccessPdf"
     }

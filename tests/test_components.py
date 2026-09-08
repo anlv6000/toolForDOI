@@ -16,6 +16,7 @@ from tools import (
     export_bibtex,
     export_citation_network,
     export_evidence_matrix,
+    extract_arxiv_id,
     find_local_pdf,
     get_unpaywall_pdf_link,
     get_semantic_scholar_references,
@@ -31,6 +32,18 @@ class TestTools(unittest.TestCase):
         self.assertEqual(clean_doi("http://doi.org/10.1038/s41586-020-2649-2"), "10.1038/s41586-020-2649-2")
         self.assertEqual(clean_doi("doi:10.1038/s41586-020-2649-2"), "10.1038/s41586-020-2649-2")
         self.assertEqual(clean_doi(" 10.1038/s41586-020-2649-2 \n"), "10.1038/s41586-020-2649-2")
+
+    def test_extract_arxiv_id_from_doi_and_urls(self):
+        self.assertEqual(extract_arxiv_id("10.48550/arXiv.2106.09685"), "2106.09685")
+        self.assertEqual(extract_arxiv_id("arXiv:2106.09685"), "2106.09685")
+        self.assertEqual(extract_arxiv_id("https://arxiv.org/pdf/2106.09685.pdf"), "2106.09685")
+        self.assertIsNone(extract_arxiv_id("10.1038/s41586-020-2649-2"))
+
+    def test_arxiv_doi_uses_direct_pdf_instead_of_unpaywall(self):
+        self.assertEqual(
+            get_unpaywall_pdf_link("10.48550/arXiv.2106.09685"),
+            "https://arxiv.org/pdf/2106.09685.pdf",
+        )
 
     def test_find_local_pdf_from_doi_derived_filename(self):
         from tempfile import TemporaryDirectory
@@ -151,6 +164,21 @@ class TestTools(unittest.TestCase):
         self.assertEqual(refs[0]["doi"], "10.1109/MCSE.2021.1")
         self.assertEqual(refs[0]["title"], "Reference Paper 1")
         self.assertEqual(refs[0]["pdf_url"], "https://arxiv.org/pdf/2010.07244")
+        self.assertIn(
+            "/paper/10.1038/s41586-020-2649-2",
+            mock_get.call_args.args[0],
+        )
+
+    @patch("requests.get")
+    def test_semantic_scholar_uses_arxiv_identifier_for_arxiv_doi(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"references": []}
+        mock_get.return_value = mock_response
+
+        get_semantic_scholar_references("10.48550/arXiv.2106.09685")
+
+        self.assertIn("/paper/ARXIV:2106.09685", mock_get.call_args.args[0])
 
 
 class TestGraphRouting(unittest.TestCase):
