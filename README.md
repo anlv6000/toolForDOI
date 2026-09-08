@@ -109,6 +109,11 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 
 `LOCAL_EMBEDDING_DEVICE=cuda` sẽ dùng GPU. Nếu WSL chưa có CUDA hoặc muốn chạy CPU, đổi thành `LOCAL_EMBEDDING_DEVICE=cpu`. Lần chạy đầu tiên sẽ tải model `all-MiniLM-L6-v2` về cache HuggingFace.
 
+Các request tải metadata/PDF đã dùng User-Agent trình duyệt, kiểm tra HTTP status,
+`Content-Type` và magic bytes `%PDF` để tránh lưu nhầm trang HTML. SSL được xác minh
+mặc định. Chỉ khi một nhà xuất bản có chứng chỉ lỗi mới tạm thời đặt
+`VERIFY_SSL=false`; nên bật lại `true` ngay sau lần chạy đó.
+
 ---
 
 ## Cách chạy

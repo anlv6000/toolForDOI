@@ -6,6 +6,7 @@ import os
 import io
 import time
 import requests
+import urllib3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
@@ -25,6 +26,22 @@ HTTP_HEADERS = {
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
 }
+
+
+def _verify_ssl() -> bool:
+    """Return whether outbound HTTPS certificates should be verified."""
+    return os.getenv("VERIFY_SSL", "true").strip().lower() not in {
+        "0", "false", "no", "off",
+    }
+
+
+def _request_kwargs(**kwargs: Any) -> Dict[str, Any]:
+    """Add the configured SSL policy to a requests call."""
+    verify_ssl = _verify_ssl()
+    if not verify_ssl:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    kwargs["verify"] = verify_ssl
+    return kwargs
 
 
 def clean_doi(doi: str) -> str:
@@ -155,7 +172,10 @@ def get_unpaywall_pdf_link(doi: str) -> Optional[str]:
     params = {"email": email}
 
     try:
-        response = requests.get(url, params=params, headers=HTTP_HEADERS, timeout=15)
+        response = requests.get(
+            url,
+            **_request_kwargs(params=params, headers=HTTP_HEADERS, timeout=15),
+        )
         if response.status_code == 404:
             print(f"[tools] Paper DOI '{cleaned_doi}' not found in Unpaywall.")
             return None
@@ -164,7 +184,14 @@ def get_unpaywall_pdf_link(doi: str) -> Optional[str]:
             return None
         response.raise_for_status()
 
-        data = response.json()
+        try:
+            data = response.json()
+        except (ValueError, requests.exceptions.JSONDecodeError) as error:
+            print(f"[tools] Unpaywall returned invalid or empty JSON for '{cleaned_doi}': {error}")
+            return None
+        if not isinstance(data, dict):
+            print(f"[tools] Unpaywall returned an unexpected response for '{cleaned_doi}'.")
+            return None
         if not data.get("is_oa", False):
             print(f"[tools] Paper '{cleaned_doi}' is not marked as Open Access on Unpaywall.")
             return None
@@ -270,10 +297,12 @@ def download_and_parse_pdf(pdf_url: str, doi: str) -> bool:
         request_headers["Referer"] = f"https://doi.org/{cleaned_doi}"
         response = requests.get(
             pdf_url,
-            headers=request_headers,
-            timeout=30,
-            stream=True,
-            allow_redirects=True,
+            **_request_kwargs(
+                headers=request_headers,
+                timeout=30,
+                stream=True,
+                allow_redirects=True,
+            ),
         )
         if response.status_code in (401, 403, 429):
             print(
@@ -285,6 +314,15 @@ def download_and_parse_pdf(pdf_url: str, doi: str) -> bool:
 
         content = response.content
         content_type = response.headers.get("Content-Type", "").lower()
+        if content_type and not any(
+            accepted_type in content_type
+            for accepted_type in ("application/pdf", "application/octet-stream")
+        ):
+            print(
+                f"[tools] URL did not return a PDF (Content-Type: {content_type}). "
+                "It may be a publisher landing page or anti-bot challenge."
+            )
+            return False
         if not content.startswith(b"%PDF"):
             print(
                 f"[tools] URL did not return a PDF (Content-Type: {content_type or 'unknown'}). "
@@ -324,11 +362,17 @@ def get_semantic_scholar_references(doi: str, max_refs: int = 10) -> List[Dict[s
         headers["x-api-key"] = api_key
 
     try:
-        response = requests.get(url, params=params, headers=headers, timeout=20)
+        response = requests.get(
+            url,
+            **_request_kwargs(params=params, headers=headers, timeout=20),
+        )
         if response.status_code == 429:
             print("[tools] Semantic Scholar API rate limit hit (429). Waiting 3 seconds...")
             time.sleep(3)
-            response = requests.get(url, params=params, headers=headers, timeout=20)
+            response = requests.get(
+                url,
+                **_request_kwargs(params=params, headers=headers, timeout=20),
+            )
 
         if response.status_code == 404:
             print(f"[tools] Paper '{cleaned_doi}' not found in Semantic Scholar.")

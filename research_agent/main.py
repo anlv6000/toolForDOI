@@ -42,15 +42,27 @@ def create_run_output_dir(doi: str) -> tuple[Path, int]:
     doi_dir = OUTPUT_DIR / safe_doi
     doi_dir.mkdir(parents=True, exist_ok=True)
     existing_numbers = []
-    for path in doi_dir.glob(f"{safe_doi}_*.txt"):
+    for path in doi_dir.iterdir():
+        candidate = path.name
+        if path.is_dir() and candidate.startswith(f"{safe_doi}_"):
+            candidate = candidate
+        elif path.is_file() and path.suffix == ".txt" and path.stem.startswith(f"{safe_doi}_"):
+            candidate = path.stem
+        else:
+            continue
         try:
-            existing_numbers.append(int(path.stem.rsplit("_", 1)[1]))
+            existing_numbers.append(int(candidate.rsplit("_", 1)[1]))
         except (IndexError, ValueError):
             continue
+
     report_number = max(existing_numbers, default=0) + 1
-    run_dir = doi_dir / f"{safe_doi}_{report_number}"
-    run_dir.mkdir(parents=True, exist_ok=False)
-    return run_dir, report_number
+    while True:
+        run_dir = doi_dir / f"{safe_doi}_{report_number}"
+        try:
+            run_dir.mkdir(parents=True, exist_ok=False)
+            return run_dir, report_number
+        except FileExistsError:
+            report_number += 1
 
 
 def save_synthesis(doi: str, query: str, final_answer: str, analyzed_dois=None, hop_count=0, output_dir=None, report_number=1) -> Path:
