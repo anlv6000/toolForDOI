@@ -1,6 +1,6 @@
 # Research Agent
 
-Ứng dụng desktop hỗ trợ đọc bài báo khoa học, tìm research gap từ phần Related Work/citations và tạo bản tổng hợp có trích dẫn DOI bằng Gemini.
+Ứng dụng desktop hỗ trợ đọc bài báo khoa học, dựng mạng citation, trích xuất evidence có cấu trúc và tạo bản tổng hợp có trích dẫn bằng Gemini.
 
 PDF local được ưu tiên xử lý trước nên hỗ trợ cả PDF tải qua paywall. Nếu PDF local không tồn tại hoặc parse thất bại, agent mới thử Unpaywall, Semantic Scholar và abstract fallback.
 
@@ -11,33 +11,22 @@ PDF local được ưu tiên xử lý trước nên hỗ trợ cả PDF tải qu
 Luồng chính hiện tại:
 
 1. Đặt PDF gốc trong `research_agent/PDF/`.
-2. Nếu thư mục chỉ có một PDF, app tự điền tên file làm DOI.
-3. Parse PDF bằng PyMuPDF, chia chunk và index vào ChromaDB.
-4. Nút `Generate gap question from citations` đọc Related Work, citations, limitations và future work đã index để tạo một câu hỏi gap.
-5. Agent đánh giá context, có thể tìm thêm reference qua Semantic Scholar tối đa 2 hop.
-6. Gemini tạo `Final Research Synthesis`, hiển thị trên app và lưu thành file UTF-8.
+2. **CiteNet** lấy references từ Semantic Scholar, tạo citation graph HTML và thư viện BibTeX.
+3. **SynthDesk** parse PDF bằng PyMuPDF, index ChromaDB, trích xuất methodology/dataset/findings và tạo evidence matrix CSV.
+4. **IntroWri** dùng evidence pool để viết draft học thuật với citation dạng `[Author, Year]` hoặc DOI fallback.
+5. Desktop app hiển thị draft và bật nút mở HTML/CSV hoặc copy BibTeX sau khi pipeline hoàn tất.
 
 ```
 [Start]
    │
    ▼
-[node_process_base] ──> Local PDF first; online fallback if needed ──> Parse ──> ChromaDB
+[node_citenet] ──> Semantic Scholar references ──> citation_network ──> HTML + BibTeX
    │
    ▼
-[node_evaluate]     ──> Gemini evaluates context (maximum 2 hops)
+[node_synthdesk] ──> PDF/ChromaDB evidence extraction ──> evidence_pool ──> CSV
    │
-   ├── Status: "EXPLORE" (context chưa đủ và còn hop)
-   │        │
-   │        ▼
-   │   [node_explore_refs] ──> Semantic Scholar lấy reference liên quan
-   │        │                   Index PDF hoặc abstract của reference
-   │        │                   Bổ sung context
-   │        └─────────────────> Quay lại [node_evaluate]
-   │
-   └── Status: "FINISH" (đủ context hoặc đã đạt 2 hop)
-            │
-            ▼
-      [node_synthesize]   ──> Gemini tạo báo cáo Markdown có citation DOI
+   ▼
+[node_introwri] ──> Gemini viết final_draft với citation học thuật
             │
             ▼
           [END]
@@ -94,10 +83,31 @@ GOOGLE_API_KEY=your_google_api_key_here
 UNPAYWALL_EMAIL=your_real_email@domain.com
 SEMANTIC_SCHOLAR_API_KEY=your_optional_s2_key_here
 GEMINI_MODEL=gemini-3.5-flash-lite
-GEMINI_EMBED_MODEL=models/gemini-embedding-001
+EMBEDDING_PROVIDER=local
+LOCAL_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+LOCAL_EMBEDDING_DEVICE=cuda
 ```
 
-> `GOOGLE_API_KEY` là bắt buộc. `UNPAYWALL_EMAIL` và `SEMANTIC_SCHOLAR_API_KEY` chỉ phục vụ fallback online.
+`GOOGLE_API_KEY` vẫn cần cho Gemini sinh câu trả lời. Embedding chạy local nên không dùng quota embedding của Gemini. `UNPAYWALL_EMAIL` và `SEMANTIC_SCHOLAR_API_KEY` chỉ phục vụ fallback online.
+
+### Chạy embedding local trên GPU WSL2
+
+Trong WSL, dùng đúng virtual environment Linux và cài các gói embedding:
+
+```bash
+cd /mnt/g/toolForDOI
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install sentence-transformers langchain-huggingface
+```
+
+Kiểm tra PyTorch nhìn thấy GPU:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+`LOCAL_EMBEDDING_DEVICE=cuda` sẽ dùng GPU. Nếu WSL chưa có CUDA hoặc muốn chạy CPU, đổi thành `LOCAL_EMBEDDING_DEVICE=cpu`. Lần chạy đầu tiên sẽ tải model `all-MiniLM-L6-v2` về cache HuggingFace.
 
 ---
 
@@ -120,9 +130,32 @@ Enter research question: What methods were used for data reproducibility?
 ```
 
 ### Chạy desktop app
+
+`main.py` là CLI tương tác. Giao diện Tkinter nằm trong `desktop_app.py`.
+
+Trên WSL2 có WSLg, cài Tkinter đúng với phiên bản Python của virtualenv. Ví dụ
+nếu `.venv` dùng Python 3.12:
+
 ```bash
+sudo apt update
+sudo apt install -y python3.12-tk
+```
+
+Kiểm tra trước khi mở giao diện:
+
+```bash
+python -c "import tkinter; print('tkinter ok')"
+```
+
+Sau đó chạy:
+
+```bash
+cd /mnt/g/toolForDOI
+source .venv/bin/activate
 python desktop_app.py
 ```
+
+Nếu chỉ muốn chạy terminal, dùng `python main.py`.
 
 Trong app, `Generate gap question from citations` tạo câu hỏi từ citations của PDF đã index và điền vào ô Research question để người dùng xem lại. Dropdown `Gemini model` cho phép đổi model riêng cho từng lần chạy.
 
@@ -142,7 +175,20 @@ gemini-3.8-flash
 
 Khi model hết quota, chọn model còn RPM/RPD trong Google AI Studio. Có thể nhập model khác trực tiếp vào ô chọn nếu API hỗ trợ.
 
-Mỗi lần chạy được lưu tại `research_agent/outputs/<doi>.txt`, ví dụ `research_agent/outputs/10.1109_JBHI.2021.3119519.txt`.
+Mỗi DOI có thư mục riêng. Mỗi câu hỏi/lần chạy được đánh số và chứa toàn bộ report cùng artifact:
+
+```text
+research_agent/outputs/10.1109_JBHI.2021.3119519/
+└── 10.1109_JBHI.2021.3119519_1/
+   ├── 10.1109_JBHI.2021.3119519_1.txt
+   ├── 10.1109_JBHI.2021.3119519_network.html
+   ├── 10.1109_JBHI.2021.3119519_evidence.csv
+   └── 10.1109_JBHI.2021.3119519_refs.bib
+```
+
+Câu hỏi tiếp theo tạo `_2`, `_3`, ... và không ghi đè kết quả cũ.
+
+Khi publisher chặn request tải PDF từ URL Unpaywall, SynthDesk sẽ thử theo thứ tự: PDF local của reference, URL open-access, rồi abstract từ Semantic Scholar. Vì vậy một lỗi anti-bot không làm mất hoàn toàn evidence của reference.
 
 ChromaDB được tách collection theo embedding model để tránh lỗi dimension mismatch giữa collection cũ 384 chiều và Gemini embedding 3072 chiều.
 

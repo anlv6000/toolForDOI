@@ -11,7 +11,15 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent / "research_agent"
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
-from tools import clean_doi, find_local_pdf, get_unpaywall_pdf_link, get_semantic_scholar_references
+from tools import (
+    clean_doi,
+    export_bibtex,
+    export_citation_network,
+    export_evidence_matrix,
+    find_local_pdf,
+    get_unpaywall_pdf_link,
+    get_semantic_scholar_references,
+)
 from graph import build_research_graph, route_after_evaluate
 from main import output_filename, save_synthesis
 
@@ -25,13 +33,42 @@ class TestTools(unittest.TestCase):
         self.assertEqual(clean_doi(" 10.1038/s41586-020-2649-2 \n"), "10.1038/s41586-020-2649-2")
 
     def test_find_local_pdf_from_doi_derived_filename(self):
-        pdf_dir = Path(__file__).resolve().parent.parent / "research_agent" / "PDF"
-        pdf_path = find_local_pdf("10.1109/JBHI.2021.3119519", pdf_dir)
-        self.assertIsNotNone(pdf_path)
-        self.assertEqual(pdf_path.name, "10.1109JBHI.2021.3119519.pdf")
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            pdf_dir = Path(directory)
+            expected = pdf_dir / "10.1109JBHI.2021.3119519.pdf"
+            expected.write_bytes(b"%PDF-test")
+            pdf_path = find_local_pdf("10.1109/JBHI.2021.3119519", pdf_dir)
+            self.assertEqual(pdf_path, expected)
 
     def test_synthesis_output_is_named_by_doi(self):
-        self.assertEqual(output_filename("10.1109/JBHI.2021.3119519"), "10.1109_JBHI.2021.3119519.txt")
+        self.assertEqual(output_filename("10.1109/JBHI.2021.3119519", 2), "10.1109_JBHI.2021.3119519_2.txt")
+
+    def test_export_artifacts(self):
+        from tempfile import TemporaryDirectory
+
+        references = [{
+            "doi": "10.1000/reference",
+            "title": "Reference paper",
+            "authors": [{"name": "A. Author"}],
+            "abstract": "A useful abstract.",
+        }]
+        claims = [{
+            "doi": "10.1000/reference",
+            "title": "Reference paper",
+            "methodology": "CNN",
+            "dataset": "DDR",
+            "key_findings": "Improved grading.",
+        }]
+        with TemporaryDirectory() as directory:
+            html_path = export_citation_network("10.1000/base", references, Path(directory))
+            csv_path = export_evidence_matrix("10.1000/base", claims, Path(directory))
+            bib_path = export_bibtex("10.1000/base", references, Path(directory))
+            self.assertTrue(Path(html_path).is_file())
+            self.assertIn("Reference paper", Path(html_path).read_text(encoding="utf-8"))
+            self.assertIn("methodology", Path(csv_path).read_text(encoding="utf-8-sig"))
+            self.assertIn("@article", Path(bib_path).read_text(encoding="utf-8"))
 
     @patch("requests.get")
     def test_get_unpaywall_pdf_link_success(self, mock_get):

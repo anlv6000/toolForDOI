@@ -1,0 +1,2 @@
+﻿doi,title,methodology,dataset,key_findings
+10.1155/2022/3117455,Retinal Vessel Automatic Segmentation Using SegNet,A method using SegNet is proposed for automated retinal vessel segmentation.,"DRIVE, STARE, and HRF","The SegNet-based model achieved accuracy of 0.9518 (DRIVE), 0.9683 (STARE), and 0.9653 (HRF); sensitivity of 0.7580, 0.7747, and 0.7070; specificity of 0.9804, 0.9910, and 0.9885; F1 score of 0.7992, 0.8369, and 0.7918; MCC of 0.7749, 0.8227, and 0.7643; and AUC of 0.9750, 0.9893, and 0.9740, respectively, outperforming many classical methods."

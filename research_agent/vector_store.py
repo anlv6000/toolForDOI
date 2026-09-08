@@ -19,9 +19,14 @@ _vector_store_instance = None
 
 def _embedding_profile() -> str:
     """Returns a stable profile name for the active embedding backend."""
-    if os.getenv("GOOGLE_API_KEY"):
+    provider = os.getenv("EMBEDDING_PROVIDER", "local").strip().lower()
+    if provider == "google":
         return f"google:{os.getenv('GEMINI_EMBED_MODEL', 'models/gemini-embedding-001')}"
-    return "local:all-MiniLM-L6-v2-or-dummy"
+    model = os.getenv(
+        "LOCAL_EMBEDDING_MODEL",
+        "sentence-transformers/all-MiniLM-L6-v2",
+    )
+    return f"local:{model}"
 
 
 def _collection_name() -> str:
@@ -31,35 +36,39 @@ def _collection_name() -> str:
 
 
 def get_embedding_function():
-    """Initializes and returns the embedding function.
-    Prefers GoogleGenerativeAIEmbeddings if GOOGLE_API_KEY is available.
-    Falls back to a lightweight local embedding for offline testing.
-    """
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if api_key:
+    """Initializes the configured local or Google embedding function."""
+    provider = os.getenv("EMBEDDING_PROVIDER", "local").strip().lower()
+
+    if provider == "local":
+        from langchain_huggingface import HuggingFaceEmbeddings
+
+        model_name = os.getenv(
+            "LOCAL_EMBEDDING_MODEL",
+            "sentence-transformers/all-MiniLM-L6-v2",
+        )
+        device = os.getenv("LOCAL_EMBEDDING_DEVICE", "cuda").strip()
+        return HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={"device": device},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+
+    if provider == "google":
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GOOGLE_API_KEY is required when EMBEDDING_PROVIDER=google."
+            )
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
         embed_model = os.getenv("GEMINI_EMBED_MODEL", "models/gemini-embedding-001")
         return GoogleGenerativeAIEmbeddings(
             model=embed_model,
             google_api_key=api_key,
         )
-    else:
-        # Fallback to HuggingFace or basic local embeddings if key is missing
-        try:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
-            return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        except Exception:
-            # Fake/mock embedding function for graceful testing without credentials
-            from langchain_core.embeddings import Embeddings
 
-            class DummyEmbeddings(Embeddings):
-                def embed_documents(self, texts: List[str]) -> List[List[float]]:
-                    return [[0.0] * 384 for _ in texts]
-
-                def embed_query(self, text: str) -> List[float]:
-                    return [0.0] * 384
-
-            return DummyEmbeddings()
+    raise ValueError(
+        "Unsupported EMBEDDING_PROVIDER. Use 'local' or 'google'."
+    )
 
 
 def get_vector_store():

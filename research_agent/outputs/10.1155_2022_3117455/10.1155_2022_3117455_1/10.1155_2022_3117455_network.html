@@ -1,0 +1,155 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 720px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#f59e0b", "font": {"color": "#222222"}, "id": "10.1155/2022/3117455", "label": "10.1155/2022/3117455", "shape": "dot", "size": 28, "title": "Base paper DOI: 10.1155/2022/3117455"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1080/00207454.2021.1984237", "label": "Role of pattern electroretinogram in asses", "shape": "dot", "title": "\u003cb\u003eRole of pattern electroretinogram in assessment of retinal dysfunction in hypertensive patients\u003c/b\u003e\u003cbr\u003eDOI: 10.1080/00207454.2021.1984237\u003cbr\u003eAbstract Background Hypertension is a major health problem in both developing and developed countries. Hypertension causes retinal structural and functional impairment within the ganglion cell layer. Pattern electroretinogram (PERG) offers an objective simple tool for assessment of retinal ganglion cell function. Aim of the work: To assess retinal dysfunction in hypertensive patients with or without signs of retinopathy using PERG. Materials and methods This is a case control study, including ninety-eight eyes. Twenty-eight eyes of healthy subjects served as a control group (group I) and seventy eyes of patients with systemic hypertension, who were further subdivided into group II including 39 eyes of hypertensive patients with normal fundus and group III including 31 eyes of patients with signs of hypertensive retinopathy. All subjects were subjected to ophthalmological examination and electrophysiological assessment using PERG. Results PERG implicit times were significantly prolonged and amplitudes were significantly reduced in patients with established hypertensive retinopathy. PERG abnormalities were detected in 96.8% of hypertensive retinopathy patients and 79.5% of hypertensive patients with normal fundus. Conclusions PERG can objectively assess retinal dysfunction in hypertensive patients and may be considered a promising tool for early detection of hypertensive retinopathy."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1177/15353702211032898", "label": "A novel multiple subdivision-based algorit", "shape": "dot", "title": "\u003cb\u003eA novel multiple subdivision-based algorithm for quantitative assessment of retinal vascular tortuosity\u003c/b\u003e\u003cbr\u003eDOI: 10.1177/15353702211032898\u003cbr\u003eVascular tortuosity as an indicator of retinal vascular morphological changes can be quantitatively analyzed and used as a biomarker for the early diagnosis of relevant disease such as diabetes. While various methods have been proposed to evaluate retinal vascular tortuosity, the main obstacle limiting their clinical application is the poor consistency compared with the experts\u2019 evaluation. In this research, we proposed to apply a multiple subdivision-based algorithm for the vessel segment vascular tortuosity analysis combining with a learning curve function of vessel curvature inflection point number, emphasizing the human assessment nature focusing not only global but also on local vascular features. Our algorithm achieved high correlation coefficients of 0.931 for arteries and 0.925 for veins compared with clinical grading of extracted retinal vessels. For the prognostic performance against experts\u2019 prediction in retinal fundus images from diabetic patients, the area under the receiver operating characteristic curve reached 0.968, indicating a good consistency with experts\u2019 predication in full retinal vascular network evaluation."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1155/2021/5520407", "label": "Automatic Retinal Vessel Segmentation Base", "shape": "dot", "title": "\u003cb\u003eAutomatic Retinal Vessel Segmentation Based on an Improved U-Net Approach\u003c/b\u003e\u003cbr\u003eDOI: 10.1155/2021/5520407\u003cbr\u003eRetinal blood vessels are the only deep microvessels in the blood circulation system that can be observed directly and noninvasively, providing us with a means of observing vascular pathologies. Cardiovascular and cerebrovascular diseases, such as glaucoma and diabetes, can cause structural changes in the retinal microvascular network. Therefore, the study of effective retinal vessel segmentation methods is of great significance for the early diagnosis of cardiovascular diseases and the vascular network\u2019s quantitative results. This paper proposes an automatic retinal vessel segmentation method based on an improved U-Net network. Firstly, the image patches are rotated to amplify the image data, and then, the RGB fundus image is preprocessed by normalization. Secondly, after the improved U-Net model is constructed with 23 convolutional layers, 4 pooling layers, 4 upsampling layers, 2 dropout layers, and Squeeze and Excitation (SE) block, the extracted image patches are utilized for training the model. Finally, the fundus images are segmented through the trained model to achieve precise extraction of retinal blood vessels. According to experimental results, the accuracy of 0.9701, 0.9683, and 0.9698, sensitivity of 0.8011, 0.6329, and 0.7478, specificity of 0.9849, 0.9967, and 0.9895, F1-Score of 0.8099, 0.8049, and 0.8013, and area under the curve (AUC) of 0.8895, 0.8845, and 0.8686 were achieved on DRIVE, STARE, and HRF databases, respectively, which is better than most classical algorithms."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/J.JVCIR.2021.103134", "label": "Contextual Information Enhanced Convolutio", "shape": "dot", "title": "\u003cb\u003eContextual Information Enhanced Convolutional Neural Networks for Retinal Vessel Segmentation in Color Fundus Images\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/J.JVCIR.2021.103134\u003cbr\u003eAbstract Accurate retinal vessel segmentation is a challenging problem in color fundus image analysis. An automatic retinal vessel segmentation system can effectively facilitate clinical diagnosis and ophthalmological research. In general, this problem suffers from various degrees of vessel thickness, perception of details, and contextual feature fusion in technique. For addressing these challenges, a deep learning based method has been proposed and several customized modules have been integrated into the well-known U-net with encoder\u2013decoder architecture, which is widely employed in medical image segmentation. In the network structure, cascaded dilated convolutional modules have been integrated into the intermediate layers, for obtaining larger receptive field and generating denser encoded feature maps. Also, the advantages of the pyramid module with spatial continuity have been taken for multi-thickness perception, detail refinement, and contextual feature fusion. Additionally, the effectiveness of different normalization approaches has been discussed on different datasets with specific properties. Finally, sufficient comparative experiments have been enforced on three retinal vessel segmentation datasets, DRIVE, CHASE_DB1, and the STARE dataset with unhealthy samples. As a result, the proposed method outperforms the work of predecessors and achieves state-of-the-art performance."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1155/2020/8365783", "label": "A Hybrid Unsupervised Approach for Retinal", "shape": "dot", "title": "\u003cb\u003eA Hybrid Unsupervised Approach for Retinal Vessel Segmentation\u003c/b\u003e\u003cbr\u003eDOI: 10.1155/2020/8365783\u003cbr\u003eRetinal vessel segmentation (RVS) is a significant source of useful information for monitoring, identification, initial medication, and surgical development of ophthalmic disorders. Most common disorders, i.e., stroke, diabetic retinopathy (DR), and cardiac diseases, often change the normal structure of the retinal vascular network. A lot of research has been committed to building an automatic RVS system. But, it is still an open issue. In this article, a framework is recommended for RVS with fast execution and competing outcomes. An initial binary image is obtained by the application of the MISODATA on the preprocessed image. For vessel structure enhancement, B-COSFIRE filters are utilized along with thresholding to obtain another binary image. These two binary images are combined by logical AND-type operation. Then, it is fused with the enhanced image of B-COSFIRE filters followed by thresholding to obtain the vessel location map (VLM). The methodology is verified on four different datasets: DRIVE, STARE, HRF, and CHASE_DB1, which are publicly accessible for benchmarking and validation. The obtained results are compared with the existing competing methods."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.neunet.2020.02.018", "label": "NFN\uff0b: A novel network followed network for", "shape": "dot", "title": "\u003cb\u003eNFN\uff0b: A novel network followed network for retinal vessel segmentation\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.neunet.2020.02.018\u003cbr\u003eIn the early diagnosis of diabetic retinopathy, the morphological attributes of blood vessels play an essential role to construct a retinal computer-aided diagnosis system. However, due to the challenges including limited densely annotated data, inter-vessel differences and structured prediction problem, it remains challenging to segment accurately the retinal vessels, particularly the capillaries on color fundus images. To address these issues, in this paper, we propose a novel deep learning-based model called NFN\uff0b\u00a0to effectively extract multi-scale information and make full use of deep feature maps. In NFN\uff0b, the front network converts an image patch into a probabilistic retinal vessel map, and the followed network further refines the map to achieve a better post-processing module, which helps represent the vessel structures implicitly. We employ the inter-network skip connections to unite two identical multi-scale backbones, which enables the useful multi-scale features to be directly transferred from shallow layers to deeper layers. The refined probabilistic retinal vessel maps produced from the augmented images are then averaged to construct the segmentation results. We evaluated this model on the digital retinal images for vessel extraction (DRIVE), structured analysis of the retina (STARE), and the child heart and health study (CHASE) databases. Our results indicate that the elaborated cascaded designs can produce performance gain and the proposed NFN\uff0b\u00a0model, to our best knowledge, achieved the state-of-the-art retinal vessel segmentation accuracy on color fundus images (AUC: 98.30%, 98.75% and 98.94%, respectively)."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1186/s12880-020-0412-7", "label": "BSCN: bidirectional symmetric cascade netw", "shape": "dot", "title": "\u003cb\u003eBSCN: bidirectional symmetric cascade network for retinal vessel segmentation\u003c/b\u003e\u003cbr\u003eDOI: 10.1186/s12880-020-0412-7\u003cbr\u003eBackground Retinal blood vessel segmentation has an important guiding significance for the analysis and diagnosis of cardiovascular diseases such as hypertension and diabetes. But the traditional manual method of retinal blood vessel segmentation is not only time-consuming and laborious but also cannot guarantee the accuracy and efficiency of diagnosis. Therefore, it is especially significant to create a computer-aided method of automatic and accurate retinal vessel segmentation. Methods In order to extract the blood vessels\u2019 contours of different diameters to realize fine segmentation of retinal vessels, we propose a Bidirectional Symmetric Cascade Network (BSCN) where each layer is supervised by vessel contour labels of specific diameter scale instead of using one general ground truth to train different network layers. In addition, to increase the multi-scale feature representation of retinal blood vessels, we propose the Dense Dilated Convolution Module (DDCM), which extracts retinal vessel features of different diameters by adjusting the dilation rate in the dilated convolution branches and generates two blood vessel contour prediction results by two directions respectively. All dense dilated convolution module outputs are fused to obtain the final vessel segmentation results. Results We experimented the three datasets of DRIVE, STARE, HRF and CHASE_DB1, and the proposed method reaches accuracy of 0.9846/0.9872/0.9856/0.9889 and AUC of 0.9874/0.9941/0.9882/0.9874 on DRIVE, STARE, HRF and CHASE_DB1. Conclusions The experimental results show that compared with the state-of-art methods, the proposed method has strong robustness, it not only avoids the adverse interference of the lesion background but also detects the tiny blood vessels at the intersection accurately."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.cmpb.2019.105231", "label": "A new robust method for blood vessel segme", "shape": "dot", "title": "\u003cb\u003eA new robust method for blood vessel segmentation in retinal fundus images based on weighted line detector and hidden Markov model\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.cmpb.2019.105231\u003cbr\u003eBACKGROUND AND OBJECTIVE\nAutomatic vessel segmentation is a crucial preliminary processing step to facilitate ophthalmologist diagnosis in some diseases. But, due to the complexity of retinal fundus image, there are some problems on accurate segmentation of retinal vessel. In this paper, a new method for retinal vessel segmentation is proposed to handle two main problems: thin vessel missing and false detection in difficult regions.\n\n\nMETHODS\nFirst, an improved line detector is proposed and used to fast extract the major structures of vessels. Then, Hidden Markov model (HMM) is applied to effectively detect vessel centerlines that include thin vessels. Finally, a denoising approach is presented to remove noises and two types of vessels are unified to obtain the complete segmentation results.\n\n\nRESULTS\nOur method is tested on two public databases (DRIVE and STARE databases), and five measures namely accuracy (Acc), sensitivity (Se), specificity (Sp), Dice coefficient (Dc), structural similarity index (SSIM) and feature similarity index (FSIM) are used to evaluate our segmentation performance. The respective values of the performance measures are 0.9475, 0.7262, 0.9803, 0.7781, 0.9992 and 0.9793 for DRIVE dataset and 0.9535, 0.7865, 0.9730, 0.7764, 0.9987 and 0.9742 for STARE dataset.\n\n\nCONCLUSIONS\nThe experiment results show that our method outperforms most published state-of-the-art methods and is better the result of a human observer. Moreover, in term of specificity, our proposed algorithm can obtain the best score among the unsupervised methods. Meanwhile, there are excellent structure and feature similarities between our result and the ground truth according to achieved SSIM and FSIM. Visual inspection on the segmentation results shows that the proposed method produces more accurate segmentations on some difficult regions such as optic disc and central light reflex while detecting thin vessels effectively compared with the other methods."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1007/s11760-019-01501-9", "label": "Discriminative dictionary learning for ret", "shape": "dot", "title": "\u003cb\u003eDiscriminative dictionary learning for retinal vessel segmentation using fusion of multiple features\u003c/b\u003e\u003cbr\u003eDOI: 10.1007/s11760-019-01501-9\u003cbr\u003e"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1007/s10044-018-0754-8", "label": "A review of retinal blood vessels extracti", "shape": "dot", "title": "\u003cb\u003eA review of retinal blood vessels extraction techniques: challenges, taxonomy, and future trends\u003c/b\u003e\u003cbr\u003eDOI: 10.1007/s10044-018-0754-8\u003cbr\u003eThe visual exploration of retinal blood vessels assists ophthalmologists in the diagnoses of different abnormalities of the eyes such as diabetic retinopathy, glaucoma, cardiovascular ailment, high blood pressure, arteriosclerosis, and age-related macular degeneration. The manual inspection of retinal vasculature is an extremely challenging and tedious task for medical experts due to the complex structure of an eye, tiny blood vessels, and variation in vessels width. Several automatic retinal vessels extraction techniques have been proposed in contemporary literature, which assist ophthalmologists in the timely identification of an eye disorders. However, due to the fast evolution of such techniques, a comprehensive survey is needed. This survey presents a comprehensive review of such techniques, strategies, and algorithms presented to date. The techniques are classified into logical groups based on the underlying methodology employed for retinal vessel extraction. The performance of existing techniques is reported on the publicly accessible datasets in term of various performance measures, providing a valuable comparison among the techniques. Thus, this survey presents a valuable resource for researchers working toward automatic extraction of retinal vessels."}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1080/00207454.2021.1984237"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1177/15353702211032898"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1155/2021/5520407"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1016/J.JVCIR.2021.103134"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1155/2020/8365783"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1016/j.neunet.2020.02.018"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1186/s12880-020-0412-7"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1016/j.cmpb.2019.105231"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1007/s11760-019-01501-9"}, {"arrows": "to", "from": "10.1155/2022/3117455", "to": "10.1007/s10044-018-0754-8"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

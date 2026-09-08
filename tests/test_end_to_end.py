@@ -44,32 +44,14 @@ class TestEndToEndWorkflow(unittest.TestCase):
             }
         ]
 
-        # 2. Mock LLM responses:
-        # First call: evaluate node -> returns is_sufficient=False to trigger exploration
-        # Second call: explore_refs node -> selects reference DOI
-        # Third call: evaluate node -> returns is_sufficient=True to trigger synthesis
-        # Fourth call: synthesize node -> writes final report
-        eval_resp_1 = MagicMock()
-        eval_resp_1.content = '{"is_sufficient": false, "reasoning": "Need more data on workflow reproducibility.", "next_search_keywords": "LIGO workflow reproduction"}'
+        extraction_resp = MagicMock()
+        extraction_resp.content = '[{"doi": "10.1038/s41586-020-2649-2", "title": "Base paper", "methodology": "Workflow study", "dataset": "GW150914", "key_findings": "Reproducible analysis."}]'
 
-        select_resp = MagicMock()
-        select_resp.content = '{"selected_doi": "10.1109/MCSE.2021.3059232", "reasoning": "Directly focuses on GW150914 workflow replication."}'
-
-        eval_resp_2 = MagicMock()
-        eval_resp_2.content = '{"is_sufficient": true, "reasoning": "Sufficient evidence collected.", "next_search_keywords": ""}'
-
-        synth_resp = MagicMock()
-        synth_resp.content = """# Research Synthesis: GW150914 Reproducibility
-
-## Executive Summary
-The reproducibility of GW150914 was verified via scientific workflows [DOI: 10.1038/s41586-020-2649-2].
-
-## Key Findings
-- Open Science Grid workflows replicated key detection parameters [DOI: 10.1109/MCSE.2021.3059232].
-"""
+        intro_resp = MagicMock()
+        intro_resp.content = "# Research Synthesis\n\nThe workflow is reproducible [Author, 2021]."
 
         mock_llm = MagicMock()
-        mock_llm.invoke.side_effect = [eval_resp_1, select_resp, eval_resp_2, synth_resp]
+        mock_llm.invoke.side_effect = [extraction_resp, intro_resp]
         mock_get_llm.return_value = mock_llm
 
         # Build and invoke graph
@@ -77,6 +59,10 @@ The reproducibility of GW150914 was verified via scientific workflows [DOI: 10.1
         initial_state = {
             "user_query": "How was GW150914 analyzed and reproduced?",
             "base_doi": "10.1038/s41586-020-2649-2",
+            "citation_network": [],
+            "evidence_pool": [],
+            "final_draft": "",
+            "generated_files": {},
             "current_dois": [],
             "visited_dois": [],
             "hop_count": 0,
@@ -91,11 +77,11 @@ The reproducibility of GW150914 was verified via scientific workflows [DOI: 10.1
 
         # Assertions
         self.assertEqual(final_state["status"], "FINISH")
-        self.assertEqual(final_state["hop_count"], 1)
+        self.assertEqual(final_state["hop_count"], 0)
         self.assertIn("10.1038/s41586-020-2649-2", final_state["current_dois"])
         self.assertIn("10.1109/MCSE.2021.3059232", final_state["current_dois"])
         self.assertIn("# Research Synthesis", final_state["final_answer"])
-        self.assertIn("[DOI: 10.1109/MCSE.2021.3059232]", final_state["final_answer"])
+        self.assertEqual(set(final_state["generated_files"]), {"html", "csv", "bib"})
 
 
 if __name__ == "__main__":

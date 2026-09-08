@@ -24,23 +24,49 @@ from tools import find_local_pdf
 OUTPUT_DIR = CURRENT_DIR / "outputs"
 
 
-def output_filename(doi: str) -> str:
+def output_filename(doi: str, report_number: int = 1) -> str:
     """Create a filesystem-safe output filename while retaining the DOI identity."""
     cleaned = clean_doi(doi)
     safe_doi = "".join(character if character.isalnum() or character in ".-_" else "_" for character in cleaned)
-    return f"{safe_doi}.txt"
+    return f"{safe_doi}_{report_number}.txt"
 
 
-def save_synthesis(doi: str, query: str, final_answer: str, analyzed_dois=None, hop_count=0) -> Path:
+def _safe_doi(doi: str) -> str:
+    cleaned = clean_doi(doi)
+    return "".join(character if character.isalnum() or character in ".-_" else "_" for character in cleaned)
+
+
+def create_run_output_dir(doi: str) -> tuple[Path, int]:
+    """Reserve a numbered folder for one DOI/question run."""
+    safe_doi = _safe_doi(doi)
+    doi_dir = OUTPUT_DIR / safe_doi
+    doi_dir.mkdir(parents=True, exist_ok=True)
+    existing_numbers = []
+    for path in doi_dir.glob(f"{safe_doi}_*.txt"):
+        try:
+            existing_numbers.append(int(path.stem.rsplit("_", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    report_number = max(existing_numbers, default=0) + 1
+    run_dir = doi_dir / f"{safe_doi}_{report_number}"
+    run_dir.mkdir(parents=True, exist_ok=False)
+    return run_dir, report_number
+
+
+def save_synthesis(doi: str, query: str, final_answer: str, analyzed_dois=None, hop_count=0, output_dir=None, report_number=1) -> Path:
     """Save a synthesis and its run metadata as a readable text report."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / output_filename(doi)
+    if output_dir is None:
+        output_dir, report_number = create_run_output_dir(doi)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / output_filename(doi, report_number)
     examined = ", ".join(analyzed_dois or []) or clean_doi(doi)
     report = (
         f"Base DOI: {clean_doi(doi)}\n"
         f"Research Query: {query}\n"
         f"Examined DOIs: {examined}\n"
         f"Hops: {hop_count}\n"
+        f"Report Number: {report_number}\n"
         f"\n{'=' * 80}\n"
         f"FINAL RESEARCH SYNTHESIS\n"
         f"{'=' * 80}\n\n"
@@ -127,6 +153,10 @@ def run_agent(doi: str, query: str):
     initial_state = {
         "user_query": query,
         "base_doi": doi,
+        "citation_network": [],
+        "evidence_pool": [],
+        "final_draft": "",
+        "generated_files": {},
         "current_dois": [],
         "visited_dois": [],
         "hop_count": 0,
@@ -138,6 +168,9 @@ def run_agent(doi: str, query: str):
     }
 
     graph = build_research_graph()
+    run_output_dir, report_number = create_run_output_dir(doi)
+    initial_state["run_output_dir"] = str(run_output_dir)
+    initial_state["report_number"] = report_number
 
     if HAS_RICH:
         console.print("\n[bold green]Starting Autonomous Research Loop...[/bold green]\n")
@@ -148,12 +181,15 @@ def run_agent(doi: str, query: str):
         # Output Results
         final_answer = final_state.get("final_answer", "No synthesis generated.")
         analyzed_dois = final_state.get("current_dois", [])
+        generated_files = final_state.get("generated_files", {})
         output_path = save_synthesis(
             doi,
             query,
             final_answer,
             analyzed_dois,
             final_state.get("hop_count", 0),
+            output_dir=run_output_dir,
+            report_number=report_number,
         )
 
         if HAS_RICH:
@@ -169,6 +205,8 @@ def run_agent(doi: str, query: str):
             console.print(f"\n[dim cyan]Total Literature Examined:[/dim cyan] {doi_summary}")
             console.print(f"[dim cyan]Total Hops Executed:[/dim cyan] {final_state.get('hop_count', 0)}\n")
             console.print(f"[dim cyan]Saved Report:[/dim cyan] {output_path}")
+            for artifact_type, artifact_path in generated_files.items():
+                console.print(f"[dim cyan]Artifact {artifact_type}:[/dim cyan] {artifact_path}")
         else:
             print("\n" + "=" * 70)
             print("FINAL RESEARCH SYNTHESIS")
@@ -178,6 +216,8 @@ def run_agent(doi: str, query: str):
             print(f"Examined DOIs: {', '.join(analyzed_dois)}")
             print(f"Hops: {final_state.get('hop_count', 0)}\n")
             print(f"Saved report: {output_path}")
+            for artifact_type, artifact_path in generated_files.items():
+                print(f"Artifact {artifact_type}: {artifact_path}")
 
         return final_answer, output_path
 

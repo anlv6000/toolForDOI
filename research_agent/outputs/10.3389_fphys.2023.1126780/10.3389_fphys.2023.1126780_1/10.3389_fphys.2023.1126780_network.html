@@ -1,0 +1,155 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 720px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#f59e0b", "font": {"color": "#222222"}, "id": "10.3389/fphys.2023.1126780", "label": "10.3389/fphys.2023.1126780", "shape": "dot", "size": 28, "title": "Base paper DOI: 10.3389/fphys.2023.1126780"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.51846/vol5iss3pp38-43", "label": "Transfer Learning-Based Framework for Sent", "shape": "dot", "title": "\u003cb\u003eTransfer Learning-Based Framework for Sentiment Classification of Cosmetics Products Reviews\u003c/b\u003e\u003cbr\u003eDOI: 10.51846/vol5iss3pp38-43\u003cbr\u003eThe exponential growth in online reviews and recommendations availability drives sentiment classification, an interesting topic in industrial research. There is a vital requirement for organizations to explore client behaviour to assess the competitive business environment. This study aspires to examine and predict customer reviews using Transfer learning (TL) approaches. Reviews can span so many domains that it is challenging to gather annotated training data for all of them. Hence, this paper proposed an annotation algorithm to label a large unlabeled dataset. These reviews must be pulled and examined to predict the sentiment polarity, whether the review is positive, neutral, or negative. We propose a deep learning-based approach that learns to extract a meaningful representation for each review in an unsupervised fashion. Sentiment classifiers trained with this high-level feature representation outperform state-of-the-art methods on a benchmark of reviews of cosmetics brands on Amazon or other platforms. Using the BERT for sentiment analysis, we achieved the highest accuracy of 93.21% compared to previous studies."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.eswa.2022.118119", "label": "Aspect2Labels: A novelistic decision suppo", "shape": "dot", "title": "\u003cb\u003eAspect2Labels: A novelistic decision support system for higher educational institutions by using multi-layer topic modelling approach\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.eswa.2022.118119\u003cbr\u003e"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.eswa.2022.116562", "label": "Topic2Labels: A framework to annotate and ", "shape": "dot", "title": "\u003cb\u003eTopic2Labels: A framework to annotate and classify the social media data through LDA topics and deep learning models for crisis response\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.eswa.2022.116562\u003cbr\u003eThe abundant use of social media impacts every aspect of life, including crisis management. Disaster management needs real-time data to be used in machine learning and deep learning models to aid their decision making. Mostly the data that is newly generated from social media is unstructured and unlabeled. Current text classification models based on supervised deep learning models heavily rely on human-labeled data that very small size and imbalanced in the context of disasters, ultimately affecting the generalization of models. In this study, we propose Topic2labels (T2L) framework which provides an automated way of labeling the data through LDA (latent dirichlet allocation) topic modelling approach and utilize Bert (the bidirectional encoder representation from transformer) embeddings for construction of feature vector to be employed to classify the data contextually. Our framework consists of three layers. In the first layer, we adopt LDA to generate the topics from the data, and develop a new algorithm to rank the topics, and map the highest ranked dominant topic into label to annotate the data. In the second layer, we transform the labeled text into feature representation through Bert embeddings and in the third layer we leveraged deep learning models as classifiers to classify the textual data into multiple categories. Experimental results on crisis-related datasets show that our framework performs better in terms of classification performance and yields improvement as compared to other baseline approaches."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.3390/app11199313", "label": "Choroidal Neovascularization Screening on ", "shape": "dot", "title": "\u003cb\u003eChoroidal Neovascularization Screening on OCT-Angiography Choriocapillaris Images by Convolutional Neural Networks\u003c/b\u003e\u003cbr\u003eDOI: 10.3390/app11199313\u003cbr\u003eChoroidal Neovascularization (CNV) is the advanced stage of Age-related Macular Degeneration (AMD), which is the leading cause of irreversible visual loss for elder people in developed countries. Optical Coherence Tomography Angiography (OCTA) is a recent non-invasive imaging technique widely used nowadays in diagnosis and follow-up of CNV. In this study, an automatic screening of CNV based on deep learning is performed using OCTA choriocapillaris images. CNV eyes (advanced wet AMD) are diagnosed among healthy eyes (no AMD) and eyes with drusen (intermediate AMD). An OCTA dataset of 1396 images is used to train and evaluate the model. A pre-trained convolutional neural network (CNN) is fine-tuned and validated on 80% of the dataset while the remaining 20% is used independently for predictions. The model can accurately detect CNV on the test set with an accuracy of 89.74%, precision of 0.96 and 0.99 area under the curve of the receiver operating characteristic. A good overall classification accuracy of 88.46% is obtained on a balanced test set. Detailed analysis of misclassified images shows that they are also considered ambiguous images for expert clinicians. This novel CNN-based application is truly a breakthrough to assist clinicians in the challenging task of screening for neovascular complications."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/j.compmedimag.2021.101996", "label": "Retrospective study of deep learning to re", "shape": "dot", "title": "\u003cb\u003eRetrospective study of deep learning to reduce noise in non-contrast head CT images\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/j.compmedimag.2021.101996\u003cbr\u003ePURPOSE\nPresented herein is a novel CT denoising method uses a skip residual encoder-decoder framework with group convolutions and a novel loss function to improve the subjective and objective image quality for improved disease detection in patients with acute ischemic stroke (AIS).\n\n\nMATERIALS AND METHODS\nIn this retrospective study, confirmed AIS patients with full-dose NCCT head scans were randomly selected from a stroke registry between 2016 and 2020. 325 patients (67\u00a0\u00b1\u00a015 years, 176 men) were included. 18 patients each with 4-7 NCCTs performed within 5-day timeframe (83 total scans) were used for model training; 307 patients each with 1-4 NCCTs performed within 5-day timeframe (380 total scans) were used for hold-out testing. In the training group, a mean CT was created from the patient\u0027s co-registered scans for each input CT to train a rotation-reflection equivariant U-Net with skip and residual connections, as well as a group convolutional neural network (SRED-GCNN) using a custom loss function to remove image noise. Denoising performance was compared to the standard Block-matching and 3D filtering (BM3D) method and RED-CNN quantitatively and visually. Signal-to-noise ratio (SNR) and contrast-to-noise (CNR) were measured in manually drawn regions-of-interest in grey matter (GM), white matter (WM) and deep grey matter (DG). Visual comparison and impact on spatial resolution were assessed through phantom images.\n\n\nRESULTS\nSRED-GCNN reduced the original CT image noise significantly better than BM3D, with SNR improvements in GM, WM, and DG by 2.47x, 2.83x, and 2.64x respectively and CNR improvements in DG/WM and GM/WM by 2.30x and 2.16x respectively. Compared to the proposed SRED-GCNN, RED-CNN reduces noise effectively though the results are visibly blurred. Scans denoised by the SRED-GCNN are shown to be visually clearer with preserved anatomy.\n\n\nCONCLUSION\nThe proposed SRED-GCNN model significantly reduces image noise and improves signal-to-noise and contrast-to-noise ratios in 380 unseen head NCCT cases."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.21037/ATM.2019.06.29", "label": "Deep convolutional neural network Inceptio", "shape": "dot", "title": "\u003cb\u003eDeep convolutional neural network Inception-v3 model for differential diagnosing of lymph node in cytological images: a pilot study.\u003c/b\u003e\u003cbr\u003eDOI: 10.21037/ATM.2019.06.29\u003cbr\u003eBackground\nIn this study, we exploited the Inception-v3 deep convolutional neural network (DCNN) model to differentiate cervical lymphadenopathy using cytological images.\n\n\nMethods\nA dataset of 80 cases was collected through the fine-needle aspiration (FNA) of enlarged cervical lymph nodes, which consisted of 20 cases of reactive lymphoid hyperplasia, 24 cases of non-Hodgkin\u0027s lymphoma (NHL), 16 cases of squamous cell carcinoma (SCC), and 20 cases of adenocarcinoma. The images were cropped into fragmented images and divided into a training dataset and a test dataset. Inception-v3 was trained to make differential diagnoses and then tested. The features of misdiagnosed images were further analysed to discover the features that may influence the diagnostic efficiency of such a DCNN.\n\n\nResults\nA total of 742 original images were derived from the cases, from which a total of 7,934 fragmented images were cropped. The classification accuracies for the original images of reactive lymphoid hyperplasia, NHL, SCC and adenocarcinoma were 88.46%, 80.77%, 89.29% and 100%, respectively. The total accuracy on the test dataset was 89.62%. Three fragmented images of reactive lymphoid hyperplasia and three fragmented images of SCC were misclassified as NHL. Three fragmented images of NHL were misclassified as reactive lymphoid hyperplasia, one was misclassified as SCC, and one was misclassified as adenocarcinoma.\n\n\nConclusions\nIn summary, after training with a large dataset, the Inception-v3 DCNN model showed great potential in facilitating the diagnosis of cervical lymphadenopathy using cytological images. Analysis of the misdiagnosed cases revealed that NHL was the most challenging cytology type for DCNN to differentiate."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1016/J.OGLA.2018.04.002", "label": "A Deep Learning-Based Algorithm Identifies", "shape": "dot", "title": "\u003cb\u003eA Deep Learning-Based Algorithm Identifies Glaucomatous Discs Using Monoscopic Fundus Photographs.\u003c/b\u003e\u003cbr\u003eDOI: 10.1016/J.OGLA.2018.04.002\u003cbr\u003ePURPOSE\nTo develop and test the performance of a deep learning-based algorithm for glaucomatous disc identification using monoscopic fundus photographs.\n\n\nDESIGN\nFundus photograph database study.\n\n\nPARTICIPANTS\nFour thousand three hundred ninety-four fundus photographs, including 3768 images from previous Sydney-based clinical studies and 626 images from publicly available online RIM-ONE and High-Resolution Fundus (HRF) databases with definitive diagnoses.\n\n\nMETHODS\nWe merged all databases except the HRF database, and then partitioned the dataset into a training set (80% of all cases) and a testing set (20% of all cases). We used the HRF images as an additional testing set. We compared the performance of the artificial intelligence (AI) system against a panel of practicing ophthalmologists including glaucoma subspecialists from Australia, New Zealand, Canada, and the United Kingdom.\n\n\nMAIN OUTCOME MEASURES\nThe sensitivity and specificity of the AI system in detecting glaucomatous optic discs.\n\n\nRESULTS\nBy using monoscopic fundus photographs, the AI system demonstrated a high accuracy rate in glaucomatous disc identification (92.7%; 95% confidence interval [CI], 91.2%-94.2%), achieving 89.3% sensitivity (95% CI, 86.8%-91.7%) and 97.1% specificity (95% CI, 96.1%-98.1%), with an area under the receiver operating characteristic curve of 0.97 (95% CI, 0.96-0.98). Using the independent online HRF database (30 images), the AI system again accomplished high accuracy, with 86.7% in both sensitivity and specificity (for ophthalmologists, 75.6% sensitivity and 77.8% specificity) and an area under the receiver operating characteristic curve of 0.89 (95% CI, 0.76-1.00).\n\n\nCONCLUSIONS\nThis study demonstrated that a deep learning-based algorithm can identify glaucomatous discs at high accuracy level using monoscopic fundus images. Given that it is far easier to obtain monoscopic disc images than high-quality stereoscopic images, this study highlights the algorithm\u0027s potential application in large population-based disease screening or telemedicine programs."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1109/ISBI.2018.8363863", "label": "Deep convolutional neural network based sc", "shape": "dot", "title": "\u003cb\u003eDeep convolutional neural network based screening and assessment of age-related macular degeneration from fundus images\u003c/b\u003e\u003cbr\u003eDOI: 10.1109/ISBI.2018.8363863\u003cbr\u003e"}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1167/iovs.17-22721", "label": "Retinal Lesion Detection With Deep Learnin", "shape": "dot", "title": "\u003cb\u003eRetinal Lesion Detection With Deep Learning Using Image Patches\u003c/b\u003e\u003cbr\u003eDOI: 10.1167/iovs.17-22721\u003cbr\u003ePurpose To develop an automated method of localizing and discerning multiple types of findings in retinal images using a limited set of training data without hard-coded feature extraction as a step toward generalizing these methods to rare disease detection in which a limited number of training data are available. Methods Two ophthalmologists verified 243 retinal images, labeling important subsections of the image to generate 1324 image patches containing either hemorrhages, microaneurysms, exudates, retinal neovascularization, or normal-appearing structures from the Kaggle dataset. These image patches were used to train one standard convolutional neural network to predict the presence of these five classes. A sliding window method was used to generate probability maps across the entire image. Results The method was validated on the eOphta dataset of 148 whole retinal images for microaneurysms and 47 for exudates. A pixel-wise classification of the area under the curve of the receiver operating characteristic of 0.94 and 0.95, as well as a lesion-wise area under the precision recall curve of 0.86 and 0.64, was achieved for microaneurysms and exudates, respectively. Conclusions Regionally trained convolutional neural networks can generate lesion-specific probability maps able to detect and distinguish between subtle pathologic lesions with only a few hundred training examples per lesion."}, {"color": "#3b82f6", "font": {"color": "#222222"}, "id": "10.1001/jama.2017.18152", "label": "Development and Validation of a Deep Learn", "shape": "dot", "title": "\u003cb\u003eDevelopment and Validation of a Deep Learning System for Diabetic Retinopathy and Related Eye Diseases Using Retinal Images From Multiethnic Populations With Diabetes\u003c/b\u003e\u003cbr\u003eDOI: 10.1001/jama.2017.18152\u003cbr\u003e"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.51846/vol5iss3pp38-43"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1016/j.eswa.2022.118119"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1016/j.eswa.2022.116562"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.3390/app11199313"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1016/j.compmedimag.2021.101996"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.21037/ATM.2019.06.29"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1016/J.OGLA.2018.04.002"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1109/ISBI.2018.8363863"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1167/iovs.17-22721"}, {"arrows": "to", "from": "10.3389/fphys.2023.1126780", "to": "10.1001/jama.2017.18152"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

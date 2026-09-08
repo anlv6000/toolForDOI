@@ -19,7 +19,11 @@ HTTP_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/pdf,application/json,*/*",
+    "Accept": "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
 }
 
 
@@ -33,6 +37,83 @@ def clean_doi(doi: str) -> str:
     elif doi.lower().startswith("doi:"):
         doi = doi[4:].strip()
     return doi
+
+
+def _artifact_stem(doi: str) -> str:
+    """Create a filesystem-safe artifact stem from a DOI."""
+    cleaned = clean_doi(doi)
+    return "".join(character if character.isalnum() or character in ".-_" else "_" for character in cleaned)
+
+
+def export_citation_network(base_doi: str, references_list: List[Dict[str, Any]], output_dir: Path) -> str:
+    """Export the base paper and references as an interactive HTML graph."""
+    from pyvis.network import Network
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{_artifact_stem(base_doi)}_network.html"
+    network = Network(height="720px", width="100%", directed=True, bgcolor="#ffffff", font_color="#222222")
+    cleaned_doi = clean_doi(base_doi)
+    network.add_node(
+        cleaned_doi,
+        label=cleaned_doi,
+        color="#f59e0b",
+        title="Base paper DOI: " + cleaned_doi,
+        shape="dot",
+        size=28,
+    )
+    for index, reference in enumerate(references_list):
+        reference_doi = clean_doi(str(reference.get("doi") or f"reference-{index + 1}"))
+        title = str(reference.get("title") or "Untitled paper")
+        abstract = str(reference.get("abstract") or "")
+        tooltip = f"<b>{title}</b><br>DOI: {reference_doi}<br>{abstract}"
+        network.add_node(reference_doi, label=title[:42], color="#3b82f6", title=tooltip, shape="dot")
+        network.add_edge(cleaned_doi, reference_doi)
+    network.write_html(str(output_path), open_browser=False)
+    return str(output_path)
+
+
+def export_evidence_matrix(base_doi: str, extracted_claims: List[Dict[str, Any]], output_dir: Path) -> str:
+    """Export structured evidence claims as a UTF-8 CSV file."""
+    import pandas as pd
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{_artifact_stem(base_doi)}_evidence.csv"
+    columns = ["doi", "title", "methodology", "dataset", "key_findings"]
+    dataframe = pd.DataFrame(extracted_claims)
+    for column in columns:
+        if column not in dataframe.columns:
+            dataframe[column] = ""
+    dataframe[columns].to_csv(output_path, index=False, encoding="utf-8-sig")
+    return str(output_path)
+
+
+def export_bibtex(base_doi: str, references_list: List[Dict[str, Any]], output_dir: Path) -> str:
+    """Export reference metadata as basic BibTeX entries."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{_artifact_stem(base_doi)}_refs.bib"
+    entries = []
+    for index, reference in enumerate(references_list):
+        doi = clean_doi(str(reference.get("doi") or f"unknown-{index + 1}"))
+        key = "ref_" + "".join(character if character.isalnum() else "_" for character in doi)
+        title = str(reference.get("title") or "Untitled paper").replace("{", "\\{").replace("}", "\\}")
+        authors = reference.get("authors") or ""
+        if isinstance(authors, list):
+            authors = " and ".join(
+                author.get("name", "") if isinstance(author, dict) else str(author)
+                for author in authors
+            )
+        entries.append(
+            f"@article{{{key},\n"
+            f"  title = {{{title}}},\n"
+            f"  author = {{{authors}}},\n"
+            f"  doi = {{{doi}}}\n"
+            f"}}"
+        )
+    output_path.write_text("\n\n".join(entries) + ("\n" if entries else ""), encoding="utf-8")
+    return str(output_path)
 
 
 def find_local_pdf(doi: str, pdf_dir: Optional[Path] = None) -> Optional[Path]:
@@ -185,20 +266,33 @@ def download_and_parse_pdf(pdf_url: str, doi: str) -> bool:
 
     print(f"[tools] Downloading PDF for DOI '{cleaned_doi}' from: {pdf_url}")
     try:
+        request_headers = dict(HTTP_HEADERS)
+        request_headers["Referer"] = f"https://doi.org/{cleaned_doi}"
         response = requests.get(
             pdf_url,
-            headers=HTTP_HEADERS,
+            headers=request_headers,
             timeout=30,
             stream=True,
             allow_redirects=True,
         )
+        if response.status_code in (401, 403, 429):
+            print(
+                f"[tools] Publisher blocked PDF download with HTTP {response.status_code}. "
+                "This usually requires an authenticated browser session or a permitted local PDF."
+            )
+            return False
         response.raise_for_status()
 
-        # Check content type or length
         content = response.content
+        content_type = response.headers.get("Content-Type", "").lower()
+        if not content.startswith(b"%PDF"):
+            print(
+                f"[tools] URL did not return a PDF (Content-Type: {content_type or 'unknown'}). "
+                "It may be a publisher landing page or anti-bot challenge."
+            )
+            return False
         if len(content) < 1000:
-            # Likely an error page or captcha
-            print(f"[tools] Downloaded file is too small ({len(content)} bytes), likely not a PDF.")
+            print(f"[tools] Downloaded PDF is unexpectedly small ({len(content)} bytes).")
             return False
 
         return _parse_and_index_pdf(content, cleaned_doi, "download")
@@ -223,7 +317,7 @@ def get_semantic_scholar_references(doi: str, max_refs: int = 10) -> List[Dict[s
 
     url = f"https://api.semanticscholar.org/graph/v1/paper/{cleaned_doi}"
     params = {
-        "fields": "references.title,references.abstract,references.externalIds,references.openAccessPdf"
+        "fields": "references.title,references.abstract,references.authors,references.externalIds,references.openAccessPdf"
     }
     headers = dict(HTTP_HEADERS)
     if api_key:
@@ -265,6 +359,7 @@ def get_semantic_scholar_references(doi: str, max_refs: int = 10) -> List[Dict[s
                     "doi": ref_doi.strip(),
                     "title": ref_title.strip(),
                     "abstract": ref_abstract.strip(),
+                    "authors": ref.get("authors") or [],
                     "pdf_url": ref_oa_url,
                 })
             if len(parsed_refs) >= max_refs:

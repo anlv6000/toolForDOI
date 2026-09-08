@@ -19,6 +19,9 @@ try:
         get_unpaywall_pdf_link,
         download_and_parse_pdf,
         get_semantic_scholar_references,
+        export_citation_network,
+        export_evidence_matrix,
+        export_bibtex,
     )
     from .vector_store import query_db, add_paper_to_db
 except ImportError:
@@ -29,6 +32,9 @@ except ImportError:
         get_unpaywall_pdf_link,
         download_and_parse_pdf,
         get_semantic_scholar_references,
+        export_citation_network,
+        export_evidence_matrix,
+        export_bibtex,
     )
     from vector_store import query_db, add_paper_to_db
 
@@ -38,14 +44,20 @@ load_dotenv()
 class AgentState(TypedDict):
     user_query: str
     base_doi: str
+    citation_network: List[Dict[str, Any]]
+    evidence_pool: List[Dict[str, Any]]
+    final_draft: str
+    generated_files: Dict[str, str]
     current_dois: List[str]
     visited_dois: List[str]
     hop_count: int
     accumulated_context: str
-    status: str  # "CONTINUE", "EXPLORE", "FINISH"
+    status: str
     next_search_keywords: str
     eval_reasoning: str
     final_answer: str
+    run_output_dir: str
+    report_number: int
 
 
 def extract_text(resp_content) -> str:
@@ -482,6 +494,122 @@ Formatting Guidelines:
 
 
 # ----------------------------------------------------------------------
+# v2 workflow: CiteNet -> SynthDesk -> IntroWri
+# ----------------------------------------------------------------------
+def _artifact_output_dir(state=None):
+    from pathlib import Path
+    output_dir = Path((state or {}).get("run_output_dir") or (Path(__file__).resolve().parent / "outputs"))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def _parse_json_response(content: Any) -> Any:
+    raw = extract_text(content).strip()
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    elif raw.startswith("```"):
+        raw = raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    return json.loads(raw.strip())
+
+
+def node_citenet(state: AgentState) -> Dict[str, Any]:
+    """Collect references and export the citation graph and BibTeX library."""
+    base_doi = clean_doi(state["base_doi"])
+    references = get_semantic_scholar_references(base_doi, max_refs=10)
+    output_dir = _artifact_output_dir(state)
+    generated_files = dict(state.get("generated_files") or {})
+    generated_files["html"] = export_citation_network(base_doi, references, output_dir)
+    generated_files["bib"] = export_bibtex(base_doi, references, output_dir)
+    dois = [base_doi] + [clean_doi(ref["doi"]) for ref in references if ref.get("doi")]
+    print(f"[node_citenet] Collected {len(references)} references.")
+    return {
+        "citation_network": references,
+        "generated_files": generated_files,
+        "current_dois": dois,
+        "visited_dois": dois,
+    }
+
+
+def node_synthdesk(state: AgentState) -> Dict[str, Any]:
+    """Index the base/reference evidence and export a structured evidence matrix."""
+    base_doi = clean_doi(state["base_doi"])
+    references = list(state.get("citation_network") or [])
+    local_pdf = find_local_pdf(base_doi)
+    indexed = parse_local_pdf(local_pdf, base_doi) if local_pdf else False
+    if not indexed:
+        pdf_url = get_unpaywall_pdf_link(base_doi)
+        if pdf_url:
+            indexed = download_and_parse_pdf(pdf_url, base_doi)
+
+    for reference in references[:5]:
+        reference_doi = clean_doi(reference.get("doi", ""))
+        if not reference_doi:
+            continue
+        reference_pdf = find_local_pdf(reference_doi)
+        indexed_reference = parse_local_pdf(reference_pdf, reference_doi) if reference_pdf else False
+        if not indexed_reference and reference.get("pdf_url"):
+            indexed_reference = download_and_parse_pdf(reference["pdf_url"], reference_doi)
+        if not indexed_reference and reference.get("abstract"):
+            add_paper_to_db(
+                reference_doi,
+                [f"Title: {reference.get('title', '')}\nAbstract: {reference['abstract']}"],
+            )
+
+    retrieved = query_db(state["user_query"], k=10, doi_filter=base_doi)
+    evidence_text = "\n\n".join(item["text"] for item in retrieved)
+    if not evidence_text:
+        evidence_text = "No indexed evidence was retrieved."
+    extraction_prompt = f"""Extract structured evidence from the academic context below.
+Return ONLY a JSON array. Each item must contain exactly: doi, title, methodology, dataset, key_findings.
+Do not invent details. Use empty strings when evidence is absent.
+
+Base DOI: {base_doi}
+Research question: {state['user_query']}
+Context:
+{evidence_text}
+"""
+    evidence_pool = []
+    try:
+        evidence_pool = _parse_json_response(get_llm().invoke(extraction_prompt).content)
+        if not isinstance(evidence_pool, list):
+            evidence_pool = []
+    except Exception as error:
+        print(f"[node_synthdesk] Evidence extraction fallback: {error}")
+    if not evidence_pool:
+        evidence_pool = [{
+            "doi": base_doi,
+            "title": "Base paper",
+            "methodology": "",
+            "dataset": "",
+            "key_findings": evidence_text[:4000],
+        }]
+
+    generated_files = dict(state.get("generated_files") or {})
+    generated_files["csv"] = export_evidence_matrix(base_doi, evidence_pool, _artifact_output_dir(state))
+    return {"evidence_pool": evidence_pool, "generated_files": generated_files}
+
+
+def node_introwri(state: AgentState) -> Dict[str, Any]:
+    """Write the final academic draft with author-year citations."""
+    evidence_json = json.dumps(state.get("evidence_pool") or [], ensure_ascii=False, indent=2)
+    prompt = f"""Write a rigorous academic research draft answering this question:
+{state['user_query']}
+
+Use only the evidence pool below. Every substantive claim must end with an author-year citation
+in the form [Author, Year]. If author or year is unavailable, use [DOI: <doi>] instead.
+Clearly separate evidence from proposed research directions and state limitations.
+Use Markdown with: Executive Summary, Evidence Synthesis, Research Gap, Proposed Evaluation, and References.
+
+Evidence pool:
+{evidence_json}
+"""
+    draft = extract_text(get_llm().invoke(prompt).content).strip()
+    return {"final_draft": draft, "final_answer": draft, "status": "FINISH"}
+
+
+# ----------------------------------------------------------------------
 # Routing Logic
 # ----------------------------------------------------------------------
 def route_after_evaluate(state: AgentState) -> str:
@@ -496,33 +624,14 @@ def route_after_evaluate(state: AgentState) -> str:
 # Graph Construction
 # ----------------------------------------------------------------------
 def build_research_graph():
-    """Builds and compiles the LangGraph research agent workflow."""
+    """Builds the static v2 CiteNet -> SynthDesk -> IntroWri workflow."""
     workflow = StateGraph(AgentState)
-
-    # Add Nodes
-    workflow.add_node("node_process_base", node_process_base)
-    workflow.add_node("node_evaluate", node_evaluate)
-    workflow.add_node("node_explore_refs", node_explore_refs)
-    workflow.add_node("node_synthesize", node_synthesize)
-
-    # Add Edges
-    workflow.add_edge(START, "node_process_base")
-    workflow.add_edge("node_process_base", "node_evaluate")
-
-    # Conditional Routing from evaluate
-    workflow.add_conditional_edges(
-        "node_evaluate",
-        route_after_evaluate,
-        {
-            "node_explore_refs": "node_explore_refs",
-            "node_synthesize": "node_synthesize",
-        }
-    )
-
-    # Loop back from explore_refs to evaluate
-    workflow.add_edge("node_explore_refs", "node_evaluate")
-
-    # Synthesize to END
-    workflow.add_edge("node_synthesize", END)
+    workflow.add_node("node_citenet", node_citenet)
+    workflow.add_node("node_synthdesk", node_synthdesk)
+    workflow.add_node("node_introwri", node_introwri)
+    workflow.add_edge(START, "node_citenet")
+    workflow.add_edge("node_citenet", "node_synthdesk")
+    workflow.add_edge("node_synthdesk", "node_introwri")
+    workflow.add_edge("node_introwri", END)
 
     return workflow.compile()

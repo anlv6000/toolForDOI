@@ -4,6 +4,7 @@ import os
 import sys
 import threading
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from tkinter import messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
@@ -13,7 +14,7 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 from graph import build_research_graph, clean_doi, generate_gap_question
-from main import OUTPUT_DIR, save_synthesis, validate_environment
+from main import OUTPUT_DIR, create_run_output_dir, save_synthesis, validate_environment
 
 
 class ResearchApp(tk.Tk):
@@ -76,8 +77,18 @@ class ResearchApp(tk.Tk):
         self.result_text = ScrolledText(result_frame, wrap="word", font=("Consolas", 10))
         self.result_text.grid(row=0, column=0, sticky="nsew")
 
+        artifact_frame = ttk.Frame(self, padding=(20, 0, 20, 8))
+        artifact_frame.grid(row=3, column=0, sticky="ew")
+        self.artifact_files = {}
+        self.graph_button = ttk.Button(artifact_frame, text="Open Citation Graph", command=self._open_graph, state="disabled")
+        self.graph_button.pack(side="left", padx=(0, 8))
+        self.evidence_button = ttk.Button(artifact_frame, text="Open Evidence Matrix", command=self._open_evidence, state="disabled")
+        self.evidence_button.pack(side="left", padx=(0, 8))
+        self.bib_button = ttk.Button(artifact_frame, text="Export Zotero (.bib)", command=self._export_bib, state="disabled")
+        self.bib_button.pack(side="left")
+
         footer = ttk.Frame(self, padding=(20, 0, 20, 16))
-        footer.grid(row=3, column=0, sticky="ew")
+        footer.grid(row=4, column=0, sticky="ew")
         footer.columnconfigure(0, weight=1)
         self.status_var = tk.StringVar(value="Ready")
         ttk.Label(footer, textvariable=self.status_var).grid(row=0, column=0, sticky="w")
@@ -101,6 +112,7 @@ class ResearchApp(tk.Tk):
             return
         self.run_button.configure(state="disabled")
         self.open_folder_button.configure(state="disabled")
+        self._set_artifact_buttons("disabled")
         self.result_text.delete("1.0", "end")
         self.status_var.set("Running research... Please wait.")
         threading.Thread(target=self._run_worker, args=(doi, query, model), daemon=True).start()
@@ -154,6 +166,10 @@ class ResearchApp(tk.Tk):
             state = {
                 "user_query": query,
                 "base_doi": doi,
+                "citation_network": [],
+                "evidence_pool": [],
+                "final_draft": "",
+                "generated_files": {},
                 "current_dois": [],
                 "visited_dois": [],
                 "hop_count": 0,
@@ -163,6 +179,9 @@ class ResearchApp(tk.Tk):
                 "eval_reasoning": "",
                 "final_answer": "",
             }
+            run_output_dir, report_number = create_run_output_dir(doi)
+            state["run_output_dir"] = str(run_output_dir)
+            state["report_number"] = report_number
             final_state = build_research_graph().invoke(state)
             answer = final_state.get("final_answer", "No synthesis generated.")
             output_path = save_synthesis(
@@ -171,8 +190,10 @@ class ResearchApp(tk.Tk):
                 answer,
                 final_state.get("current_dois", []),
                 final_state.get("hop_count", 0),
+                output_dir=run_output_dir,
+                report_number=report_number,
             )
-            self.after(0, self._run_complete, answer, output_path)
+            self.after(0, self._run_complete, answer, output_path, final_state.get("generated_files", {}))
         except Exception as error:
             self.after(0, self._run_failed, str(error))
         finally:
@@ -185,16 +206,41 @@ class ResearchApp(tk.Tk):
         else:
             os.environ["GEMINI_MODEL"] = previous_model
 
-    def _run_complete(self, answer, output_path):
+    def _run_complete(self, answer, output_path, generated_files):
         self.result_text.insert("1.0", answer)
+        self.artifact_files = generated_files
         self.status_var.set(f"Saved: {output_path}")
         self.run_button.configure(state="normal")
         self.open_folder_button.configure(state="normal")
+        self._set_artifact_buttons("normal")
 
     def _run_failed(self, error):
         self.status_var.set("Run failed")
         self.run_button.configure(state="normal")
+        self._set_artifact_buttons("disabled")
         messagebox.showerror("Execution failed", error)
+
+    def _set_artifact_buttons(self, state):
+        self.graph_button.configure(state=state if self.artifact_files else "disabled")
+        self.evidence_button.configure(state=state if self.artifact_files else "disabled")
+        self.bib_button.configure(state=state if self.artifact_files else "disabled")
+
+    def _open_graph(self):
+        path = self.artifact_files.get("html")
+        if path:
+            webbrowser.open(Path(path).resolve().as_uri())
+
+    def _open_evidence(self):
+        path = self.artifact_files.get("csv")
+        if path:
+            os.startfile(Path(path).resolve())
+
+    def _export_bib(self):
+        path = self.artifact_files.get("bib")
+        if path:
+            self.clipboard_clear()
+            self.clipboard_append(Path(path).read_text(encoding="utf-8"))
+            self.status_var.set("BibTeX copied to clipboard")
 
     def _open_outputs(self):
         import os
